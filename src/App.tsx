@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Settings, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { DrawEngine, type Color, type ToolType, type Stroke } from './lib/engine';
 import { useAuth } from './hooks/useAuth';
 import { useProfile, type Features } from './hooks/useProfile';
@@ -8,8 +8,10 @@ import { useApi } from './hooks/useApi';
 import LandingScreen from './components/LandingScreen';
 import LoginScreen from './components/LoginScreen';
 import { NicknameScreen, WelcomeScreen, LoadOverlay } from './components/StageOverlays';
-import Panel from './components/Panel';
-import GalleryPanel from './components/GalleryPanel';
+import Toolbar from './components/Toolbar';
+import ColorPanel from './components/ColorPanel';
+import NavPanel from './components/NavPanel';
+import DrawingsPanel from './components/DrawingsPanel';
 import { StatsModal, HistoryModal, ProfileModal } from './components/Modals';
 import TemplatesModal from './components/TemplatesModal';
 import SubscriptionModal from './components/SubscriptionModal';
@@ -55,8 +57,8 @@ export default function App() {
   const [loadMsg, setLoadMsg] = useState('Starting…');
 
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
-  const [panelCollapsed, setPanelCollapsed] = useState(false);
-  const [galleryHidden, setGalleryHidden] = useState(true);
+  const [navOpen, setNavOpen] = useState(false);
+  const [drawingsOpen, setDrawingsOpen] = useState(false);
 
   const [color, setColorState] = useState<Color>({ r: 0, g: 220, b: 255 });
   const [tool, setToolState] = useState<ToolType>('freehand');
@@ -173,8 +175,10 @@ export default function App() {
 
   const enterApp = useCallback(() => {
     setStage('app');
-    const isMobileLayout = window.matchMedia('(max-width: 760px), (pointer: coarse) and (max-width: 900px)').matches;
-    setGalleryHidden(isMobileLayout);
+    // On phones/tablets the nav rail starts hidden behind the hamburger so the
+    // camera stays dominant; on desktop it shows as a compact icon rail.
+    setNavOpen(false);
+    setDrawingsOpen(false);
   }, []);
 
   useEffect(() => {
@@ -374,6 +378,9 @@ export default function App() {
   const drawingNames = Object.keys(profile.drawings);
   const currentStrokes: Stroke[] = engineRef.current?.getStrokes() || [];
   void strokesTick;
+  const isMobileLayout =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(max-width: 760px), (pointer: coarse) and (max-width: 900px)').matches;
 
   return (
     <div className="transition-colors duration-700 overflow-x-hidden w-full h-full relative">
@@ -397,76 +404,55 @@ export default function App() {
           <div className={'zoom-indicator' + (zoomShow ? ' show' : '')}>Zoom {zoomPct}%</div>
 
           {bgImageActive && (
-            <div
-              onClick={onRemoveBgImage}
-              style={{
-                position: 'absolute',
-                top: 'max(52px, calc(env(safe-area-inset-top) + 40px))',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                zIndex: 21,
-                background: 'var(--chip-bg)',
-                border: '1px solid var(--chip-border)',
-                color: 'var(--text)',
-                fontSize: 11,
-                padding: '5px 12px',
-                borderRadius: 20,
-                cursor: 'pointer',
-                backdropFilter: 'blur(10px)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
+            <div className="sc-chip sc-chip-remove" onClick={onRemoveBgImage} role="button" aria-label="Remove background image">
               ✕ Remove image
             </div>
           )}
 
           {cameraSleeping && (
-            <div
-              onClick={wakeCamera}
-              style={{
-                position: 'absolute',
-                top: 'max(110px, calc(env(safe-area-inset-top) + 98px))',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                zIndex: 22,
-                background: 'var(--chip-bg)',
-                border: '1.5px solid var(--accent)',
-                color: 'var(--text)',
-                fontSize: 11.5,
-                fontWeight: 700,
-                padding: '7px 14px',
-                borderRadius: 20,
-                cursor: 'pointer',
-                backdropFilter: 'blur(10px)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                boxShadow: '0 6px 18px -8px rgba(0,0,0,0.4)',
-              }}
-            >
+            <div className="sc-chip sc-chip-wake" onClick={wakeCamera} role="button" aria-label="Wake the camera">
               😴 Camera is asleep — tap to wake it
             </div>
           )}
 
-          <div className="panel-toggle" style={{ right: 10, top: 'max(12px, env(safe-area-inset-top))' }} onClick={() => setPanelCollapsed((c) => !c)} title="Drawing tools">
-            <Settings size={20} />
-          </div>
-          <div className="panel-toggle" style={{ left: 10, top: 'max(12px, env(safe-area-inset-top))' }} onClick={() => setGalleryHidden((c) => !c)} title="My drawings">
-            <Menu size={22} />
-          </div>
+          <button
+            type="button"
+            className="sc-navtoggle"
+            onClick={() => setNavOpen((o) => !o)}
+            aria-label="Menu"
+            aria-expanded={navOpen}
+            title="Menu"
+          >
+            <Menu size={20} />
+          </button>
 
-          <Panel
-            collapsed={panelCollapsed}
-            color={color}
-            onColor={onColor}
+          <NavPanel
+            open={navOpen}
+            onToggle={() => setNavOpen((o) => !o)}
+            mobile={isMobileLayout}
+            onNavigate={() => setNavOpen(false)}
+            profileLabel={profile.nickname || user?.email || ''}
+            isPro={profile.subscribed}
+            showAdmin={profile.isAdmin}
+            friendRequests={friendRequests}
+            drawingsClosed={drawingsOpen}
+            onDrawings={() => setDrawingsOpen(true)}
+            onNew={() => onNewDrawing('')}
+            onTemplates={() => setModal('templates')}
+            onStats={() => setModal('stats')}
+            onHistory={() => setModal('history')}
+            onProfile={() => setModal('profile')}
+            onFriends={() => setModal('friends')}
+            onGroups={() => setModal('groups')}
+            onBattles={() => { setBattleSource(null); setModal('battles'); }}
+            onPlan={() => { setPlanReason(''); setModal('plan'); }}
+            onAdmin={() => setStage('admin')}
+            onLogout={handleLogout}
+          />
+
+          <Toolbar
             tool={tool}
             onTool={onTool}
-            gradientOn={gradientOn}
-            onGradient={onGradientToggle}
-            size={size}
-            onSize={onSize}
             isEraser={isEraser}
             onEraser={onEraserToggle}
             onUndo={onUndo}
@@ -489,38 +475,39 @@ export default function App() {
             theme={theme}
             onTheme={onThemeToggle}
           />
-          <input type="file" ref={bgImgInputRef} accept="image/*" style={{ display: 'none' }} onChange={onBgImageChange} />
 
-          <GalleryPanel
-            hidden={galleryHidden}
-            profileLabel={profile.nickname || user?.email || ''}
-            names={drawingNames}
-            favorites={profile.favorites}
-            currentName={profile.currentName}
-            saveStatus={profile.saveStatus}
-            isPro={profile.subscribed}
-            showAdmin={profile.isAdmin}
-            friendRequests={friendRequests}
-            onSwitch={(name) => profile.switchDrawing(name, eng())}
-            onToggleFavorite={(name) => profile.toggleFavorite(name, eng())}
-            onRename={(name) => {
-              const nn = prompt(`Rename "${name}" to:`, name);
-              if (nn) profile.renameDrawing(name, nn, eng());
-            }}
-            onDuplicate={(name) => profile.duplicateDrawing(name, eng())}
-            onDelete={(name) => profile.deleteDrawing(name, eng())}
-            onNew={onNewDrawing}
-            onTemplates={() => setModal('templates')}
-            onStats={() => setModal('stats')}
-            onHistory={() => setModal('history')}
-            onProfile={() => setModal('profile')}
-            onFriends={() => setModal('friends')}
-            onGroups={() => setModal('groups')}
-            onBattles={() => { setBattleSource(null); setModal('battles'); }}
-            onPlan={() => { setPlanReason(''); setModal('plan'); }}
-            onAdmin={() => setStage('admin')}
-            onLogout={handleLogout}
+          <ColorPanel
+            color={color}
+            onColor={onColor}
+            size={size}
+            onSize={onSize}
+            isEraser={isEraser}
+            gradientOn={gradientOn}
+            onGradient={onGradientToggle}
           />
+
+          {drawingsOpen && (
+            <DrawingsPanel
+              open={drawingsOpen}
+              left={isMobileLayout ? undefined : navOpen ? 216 : 74}
+              names={drawingNames}
+              favorites={profile.favorites}
+              currentName={profile.currentName}
+              saveStatus={profile.saveStatus}
+              onSwitch={(name) => profile.switchDrawing(name, eng())}
+              onToggleFavorite={(name) => profile.toggleFavorite(name, eng())}
+              onRename={(name) => {
+                const nn = prompt(`Rename "${name}" to:`, name);
+                if (nn) profile.renameDrawing(name, nn, eng());
+              }}
+              onDuplicate={(name) => profile.duplicateDrawing(name, eng())}
+              onDelete={(name) => profile.deleteDrawing(name, eng())}
+              onNew={onNewDrawing}
+              onTemplates={() => setModal('templates')}
+              onClose={() => setDrawingsOpen(false)}
+            />
+          )}
+          <input type="file" ref={bgImgInputRef} accept="image/*" style={{ display: 'none' }} onChange={onBgImageChange} />
 
           {modal === 'stats' && (
             <StatsModal
