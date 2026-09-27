@@ -18,6 +18,7 @@ import SubscriptionModal from './components/SubscriptionModal';
 import FriendsModal from './components/FriendsModal';
 import GroupsModal, { type Group } from './components/GroupsModal';
 import CompetitionsModal from './components/CompetitionsModal';
+import NotificationsModal from './components/NotificationsModal';
 import AdminPage from './components/AdminPage';
 import type { Template } from './lib/templates';
 
@@ -71,7 +72,7 @@ export default function App() {
   const [recording, setRecording] = useState(false);
   const [bgImageActive, setBgImageActive] = useState(false);
   const [cameraSleeping, setCameraSleeping] = useState(false);
-  const [friendRequests, setFriendRequests] = useState(0);
+  const [pendingRequests, setPendingRequests] = useState(0);
 
   const [hint, setHint] = useState('Initialising…');
   const [modeBadge, setModeBadge] = useState({ cls: '', text: '' });
@@ -84,7 +85,7 @@ export default function App() {
   const dotRef = useRef<{ show: boolean; x: number; y: number; size: number; color: string; glow: string } | null>(null);
 
   const [modal, setModal] = useState<
-    null | 'stats' | 'history' | 'profile' | 'templates' | 'friends' | 'groups' | 'battles' | 'plan'
+    null | 'stats' | 'history' | 'profile' | 'templates' | 'friends' | 'groups' | 'battles' | 'plan' | 'requests'
   >(null);
   const [planReason, setPlanReason] = useState('');
   const [battleSource, setBattleSource] = useState<Group | null>(null);
@@ -202,10 +203,12 @@ export default function App() {
     return () => window.clearTimeout(startTimer);
   }, [stage]);
 
-  const refreshFriendBadge = useCallback(async () => {
+  // One badge for everything waiting on you: friend requests, group
+  // invitations and battle invitations, all from the same durable list.
+  const refreshRequestBadge = useCallback(async () => {
     try {
-      const d = await api.get('/api/friends/requests');
-      setFriendRequests(typeof d?.count === 'number' ? d.count : 0);
+      const d = await api.get('/api/requests');
+      setPendingRequests(typeof d?.count === 'number' ? d.count : 0);
     } catch {
       /* ignore polls while signed out / offline */
     }
@@ -213,10 +216,10 @@ export default function App() {
 
   useEffect(() => {
     if (stage !== 'app' || !user) return;
-    void refreshFriendBadge();
-    const t = setInterval(refreshFriendBadge, 25000);
+    void refreshRequestBadge();
+    const t = setInterval(refreshRequestBadge, 25000);
     return () => clearInterval(t);
-  }, [stage, user, refreshFriendBadge]);
+  }, [stage, user, refreshRequestBadge]);
 
   function handleGetStarted() {
     setStage('login');
@@ -434,7 +437,8 @@ export default function App() {
             profileLabel={profile.nickname || user?.email || ''}
             isPro={profile.subscribed}
             showAdmin={profile.isAdmin}
-            friendRequests={friendRequests}
+            friendRequests={pendingRequests}
+            onBadgeClick={() => setModal('requests')}
             drawingsClosed={drawingsOpen}
             onDrawings={() => setDrawingsOpen(true)}
             onNew={() => onNewDrawing('')}
@@ -550,7 +554,8 @@ export default function App() {
               onCancel={() => profile.refresh()}
             />
           )}
-          {modal === 'friends' && <FriendsModal onClose={() => setModal(null)} onChange={() => void refreshFriendBadge()} />}
+          {modal === 'friends' && <FriendsModal onClose={() => setModal(null)} onChange={() => void refreshRequestBadge()} />}
+          {modal === 'requests' && <NotificationsModal onClose={() => setModal(null)} onChange={() => void refreshRequestBadge()} />}
           {modal === 'groups' && (
             <GroupsModal
               onClose={() => setModal(null)}
@@ -561,8 +566,10 @@ export default function App() {
             <CompetitionsModal
               onClose={() => { setBattleSource(null); setModal(null); }}
               sourceGroup={battleSource}
-              getStrokes={() => eng().getStrokes()}
+              getStrokes={() => eng()?.getStrokes() || []}
+              setStrokes={(strokes) => eng()?.setStrokes(strokes)}
               canBattle={profile.features.battles}
+              onChange={() => void refreshRequestBadge()}
             />
           )}
           {modal === 'profile' && (

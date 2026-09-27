@@ -17,6 +17,8 @@ export interface Group {
   wins: number;
   played: number;
   members: Member[];
+  // Friends already invited who have not answered yet — they join on accept.
+  invited?: { userId: string; inviterId: string; createdAt: number }[];
 }
 interface Props {
   onClose: () => void;
@@ -81,7 +83,13 @@ export default function GroupsModal({ onClose, onChallenge }: Props) {
     }
   }
 
-  const inGroupNotMember = (g: Group) => friends.filter((f) => !g.members.some((m) => m.userId === f.userId));
+  const invitedIds = (g: Group) => new Set((g.invited || []).map((i) => i.userId));
+  const friendName = (f: Member) => f.nickname || f.email;
+  const inGroupNotMember = (g: Group) => friends.filter((f) => !g.members.some((m) => m.userId === f.userId) && !invitedIds(g).has(f.userId));
+  const awaitingReply = (g: Group) => {
+    const pending = invitedIds(g);
+    return friends.filter((f) => !g.members.some((m) => m.userId === f.userId) && pending.has(f.userId));
+  };
 
   return (
     <div className="modal-overlay" style={{ zIndex: 90 }}>
@@ -121,7 +129,7 @@ export default function GroupsModal({ onClose, onChallenge }: Props) {
                       setPicked((prev) => (e.target.checked ? [...prev, f.userId] : prev.filter((u) => u !== f.userId)))
                     }
                   />
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.nickname || f.email}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{friendName(f)}</span>
                 </label>
               ))}
               {!friends.length && <div className="stat-row">You need friends first — no friends to invite.</div>}
@@ -129,6 +137,9 @@ export default function GroupsModal({ onClose, onChallenge }: Props) {
             <button className="gbtn" style={{ width: '100%', justifyContent: 'center', background: 'var(--kid-green)', color: '#fff' }} onClick={create} disabled={busy}>
               {busy ? 'Creating…' : `Create ${name.trim() ? `“${name.trim()}”` : 'group'}`}
             </button>
+            <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 6, lineHeight: 1.5 }}>
+              You&rsquo;re added straight away. The friends you picked get an invitation and join when they accept it — they&rsquo;re not members until then.
+            </div>
           </>
         )}
 
@@ -166,10 +177,16 @@ export default function GroupsModal({ onClose, onChallenge }: Props) {
                     ))}
 
                     {g.adminId && inGroupNotMember(g).map((f) => (
-                      <a key={f.userId} style={{ display: 'inline-block', margin: '4px 6px 0 0', fontSize: 11, cursor: 'pointer', color: 'var(--kid-blue)' }} onClick={() => act('invite', g.id, { memberId: f.userId })}>
-                        + {f.nickname || f.email}
+                      <a key={f.userId} style={{ display: 'inline-block', margin: '4px 6px 0 0', fontSize: 11, cursor: busy ? 'default' : 'pointer', color: 'var(--kid-blue)' }} onClick={busy ? undefined : () => act('invite', g.id, { memberId: f.userId })}>
+                        + {friendName(f)}
                       </a>
                     ))}
+
+                    {awaitingReply(g).length > 0 && (
+                      <div style={{ fontSize: 10.5, color: 'var(--text-dim)', marginTop: 5 }}>
+                        ⏳ Invite sent, waiting for {awaitingReply(g).map((f) => friendName(f)).join(', ')} — they join the group when they accept.
+                      </div>
+                    )}
 
                     <div className="flex gap-1.5 mt-2">
                       <div className="gbtn" style={{ flex: 1, justifyContent: 'center' }} onClick={() => { if (confirm('Leave this group?')) act('leave', g.id); }}>Leave</div>

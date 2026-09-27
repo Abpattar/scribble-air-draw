@@ -1,8 +1,17 @@
 import Razorpay from 'razorpay';
-import { ObjectId } from 'mongodb';
 import { requireRole, requireUser } from '../src/lib/serverAuth.js';
-import { profileCollection, groupCollection, competitionCollection, planCollection } from '../src/lib/mongodb.js';
+import {
+  competitionCollection,
+  groupCollection,
+  planCollection,
+  profileCollection,
+  requestsCollection,
+} from '../src/lib/mongodb.js';
 import { ensurePlans, publicPlan, PRO_FEATURES, FEATURE_CATALOG } from './lib/catalog.js';
+import { safeObjectId } from './lib/ids.js';
+import { phaseOf } from './lib/battle.js';
+import { cancelBattlesForGroup } from './lib/battleStore.js';
+import { CANCEL_REASON } from './lib/battle.js';
 
 // Consolidated admin endpoint. On Vercel each rewrite in vercel.json maps a
 // legacy path to this handler with a ?route= query param:
@@ -87,7 +96,7 @@ async function overview(request, response) {
     .map((c) => ({
       id: String(c._id),
       prompt: c.prompt,
-      status: c.closedAt ? 'closed' : c.voteEndTime > now ? (c.drawEndTime > now ? 'drawing' : 'voting') : 'closed',
+      status: phaseOf(c, now),
       createdAt: c.createdAt,
     }));
 
@@ -105,9 +114,9 @@ async function overview(request, response) {
   const competitionsList = competitions.map((c) => ({
     id: String(c._id),
     prompt: c.prompt,
-    groupA: String(c.groupA),
-    groupB: String(c.groupB),
-    status: c.closedAt ? 'closed' : c.voteEndTime > now ? (c.drawEndTime > now ? 'drawing' : 'voting') : 'closed',
+    groupA: c.groupA ? String(c.groupA) : null,
+    groupB: c.groupB ? String(c.groupB) : null,
+    status: phaseOf(c, now),
     createdAt: c.createdAt || 0,
     votes: Object.values(c.votes || {}).length,
   }));
@@ -438,13 +447,15 @@ async function deleteGroup(request, response) {
   const id = String(request.query?.groupId || '');
   let group;
   try {
-    group = await (await groupCollection()).findOne({ _id: new ObjectId(id) });
+    group = await (await groupCollection()).findOne({ _id: safeObjectId(id) });
   } catch {
     group = null;
   }
   if (!group) return response.status(404).json({ error: 'Group not found.' });
 
-  await (await competitionCollection()).deleteMany({ $or: [{ groupA: id }, { groupB: id }] });
+  // Cancel the live battles and keep the documents, as leaving a group does.
+  await cancelBattlesForGroup(String(group._id), { reason: CANCEL_REASON.GROUP_GONE });
+  await (await requestsCollection()).deleteMany({ groupId: String(group._id) });
   await (await groupCollection()).deleteOne({ _id: group._id });
   return response.status(200).json({ ok: true, deleted: true });
 }
@@ -457,7 +468,7 @@ async function deleteCompetition(request, response) {
   const id = String(request.query?.competitionId || '');
   let comp;
   try {
-    comp = await (await competitionCollection()).findOne({ _id: new ObjectId(id) });
+    comp = await (await competitionCollection()).findOne({ _id: safeObjectId(id) });
   } catch {
     comp = null;
   }

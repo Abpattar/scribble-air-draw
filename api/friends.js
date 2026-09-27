@@ -1,5 +1,6 @@
 import { requireUserId } from '../src/lib/serverAuth.js';
 import { friendshipCollection, profileCollection } from '../src/lib/mongodb.js';
+import { safeObjectId } from './lib/ids.js';
 
 const pair = (a, b) => (a < b ? [a, b] : [b, a]);
 
@@ -55,6 +56,30 @@ async function pendingRequests(request, response) {
   } catch (error) {
     return response.status(503).json({ error: error?.message || 'Could not load friend requests.' });
   }
+}
+
+// Answers a friendship by document id — the shape /api/requests holds, where the
+// id came from a notification rather than from a user pair. Only the person the
+// request was addressed to may answer it, and a decline removes the request
+// exactly like the pair-based path below.
+export async function respondToFriendship(userId, friendshipId, accept) {
+  const col = await friendshipCollection();
+  const filter = {
+    _id: safeObjectId(friendshipId),
+    status: 'pending',
+    actionUserId: { $ne: userId },
+    $or: [{ userA: userId }, { userB: userId }],
+  };
+  if (!accept) {
+    const result = await col.deleteOne(filter);
+    return { ok: (result.deletedCount || 0) === 1 };
+  }
+  const updated = await col.findOneAndUpdate(
+    filter,
+    { $set: { status: 'accepted', respondedAt: Date.now() } },
+    { returnDocument: 'after' }
+  );
+  return { ok: Boolean(updated) };
 }
 
 async function getFriends(request, response, userId) {

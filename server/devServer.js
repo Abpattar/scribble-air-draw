@@ -109,6 +109,7 @@ await mount(['api', 'cancel-subscription'], 'billing.js');
 await mount(['api', 'razorpay-webhook'], 'billing.js');
 await mount(['api', 'friends'], 'friends.js');
 await mount(['api', 'friends', 'requests'], 'friends.js');
+await mount(['api', 'requests'], 'requests.js');
 await mount(['api', 'groups'], 'groups.js');
 await mount(['api', 'groups', ':groupId'], 'groups.js');
 await mount(['api', 'competitions'], 'competitions.js');

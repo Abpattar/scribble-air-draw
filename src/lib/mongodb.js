@@ -9,6 +9,7 @@ const PROFILES_COLLECTION = 'profiles';
 const FRIENDSHIPS_COLLECTION = 'friendships';
 const GROUPS_COLLECTION = 'groups';
 const COMPETITIONS_COLLECTION = 'competitions';
+const REQUESTS_COLLECTION = 'requests';
 const PLANS_COLLECTION = 'plans';
 
 let clientPromisePromise = null;
@@ -68,4 +69,7 @@ export const profileCollection = () => getDb().then((db) => db.collection(PROFIL
 export const friendshipCollection = () => getDb().then((db) => db.collection(FRIENDSHIPS_COLLECTION));
 export const groupCollection = () => getDb().then((db) => db.collection(GROUPS_COLLECTION));
 export const competitionCollection = () => getDb().then((db) => db.collection(COMPETITIONS_COLLECTION));
+// Pending group invitations — the durable home for "come join my group", so
+// membership only changes once, when the invitee accepts.
+export const requestsCollection = () => getDb().then((db) => db.collection(REQUESTS_COLLECTION));
 export const planCollection = () => getDb().then((db) => db.collection(PLANS_COLLECTION));

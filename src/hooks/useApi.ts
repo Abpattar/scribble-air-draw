@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useSession } from '@clerk/clerk-react';
 
 // Thin authenticated fetch helper for the serverless API. Injects the Clerk
@@ -32,10 +32,16 @@ export function useApi() {
     return data;
   }, []);
 
-  return {
-    get: (p: string) => call('GET', p),
-    post: (p: string, b?: unknown) => call('POST', p, b ?? {}),
-    patch: (p: string, b?: unknown) => call('PATCH', p, b ?? {}),
-    del: (p: string) => call('DELETE', p),
-  };
+  // Stable for the life of the session: callers put `api` in useCallback and
+  // useEffect dependency lists, and a fresh object on every render would tear
+  // down and rebuild every one of those effects on every render.
+  return useMemo(
+    () => ({
+      get: (p: string) => call('GET', p),
+      post: (p: string, b?: unknown) => call('POST', p, b ?? {}),
+      patch: (p: string, b?: unknown) => call('PATCH', p, b ?? {}),
+      del: (p: string) => call('DELETE', p),
+    }),
+    [call]
+  );
 }

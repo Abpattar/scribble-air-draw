@@ -24,6 +24,7 @@ interface Props {
   isPro: boolean;
   showAdmin: boolean;
   friendRequests: number;
+  onBadgeClick?: () => void;
   drawingsClosed: boolean;
   onDrawings: () => void;
   onNew: () => void;
@@ -45,18 +46,53 @@ function Item({
   active,
   onClick,
   badge,
+  onBadgeClick,
 }: {
   Icon: typeof Menu;
   label: string;
   active?: boolean;
   onClick: () => void;
   badge?: number;
+  onBadgeClick?: () => void;
 }) {
+  // The badge is the pending-requests surface. It has to live inside the icon
+  // wrapper to stay pinned over the icon, so it ends up inside the item button —
+  // hence role/tabIndex and a key handler, to keep it reachable without a mouse.
+  const pending = badge != null && badge > 0;
   return (
-    <button type="button" className={'sc-navbtn' + (active ? ' active' : '')} onClick={onClick} title={label} aria-label={label}>
+    <button
+      type="button"
+      className={'sc-navbtn' + (active ? ' active' : '')}
+      onClick={onClick}
+      title={pending && onBadgeClick ? `${label} · ${badge} pending requests` : label}
+      aria-label={pending ? `${label} — ${badge} pending requests` : label}
+    >
       <span className="sc-navic">
         <Icon size={17} strokeWidth={2} />
-        {badge != null && badge > 0 && <span className="sc-navbadge">{badge > 9 ? '9+' : badge}</span>}
+        {pending &&
+          (onBadgeClick ? (
+            <span
+              className="sc-navbadge"
+              role="button"
+              tabIndex={0}
+              title="Pending requests"
+              aria-label={`${badge} pending requests`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onBadgeClick();
+              }}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.stopPropagation();
+                e.preventDefault();
+                onBadgeClick();
+              }}
+            >
+              {badge > 9 ? '9+' : badge}
+            </span>
+          ) : (
+            <span className="sc-navbadge">{badge > 9 ? '9+' : badge}</span>
+          ))}
       </span>
       <span className="sc-navlbl">{label}</span>
     </button>
@@ -93,7 +129,7 @@ export default function NavPanel(p: Props) {
         <Item Icon={Sticker} label="Trace Templates" onClick={go(p.onTemplates)} />
 
         <Section label="Community" />
-        <Item Icon={Users} label="Friends" onClick={go(p.onFriends)} badge={p.friendRequests} />
+        <Item Icon={Users} label="Friends" onClick={go(p.onFriends)} badge={p.friendRequests} onBadgeClick={p.onBadgeClick ? go(p.onBadgeClick) : undefined} />
         <Item Icon={UsersRound} label="Groups" onClick={go(p.onGroups)} />
         <Item Icon={Swords} label="Battles" onClick={go(p.onBattles)} />
 
