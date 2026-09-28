@@ -4,7 +4,7 @@ import {
   groupCollection,
   profileCollection,
   requestsCollection,
-} from '../../src/lib/mongodb.js';
+} from '../src/lib/mongodb.js';
 import { idFilter, idIn } from './ids.js';
 import {
   BATTLE_PROMPTS,
@@ -182,7 +182,10 @@ export function battleView(doc, refs, userId, now, withStrokes) {
   const me = participantOf(doc, userId);
   const tallied = tallyVotes(doc);
   const counts = acceptedCounts(doc);
-  const showStrokes = withStrokes && canSeeStrokes(phase, side);
+  // Visibility is decided per side, not once for the whole battle: during the
+  // drawing window a player may read their own team's canvas and never the
+  // other side's, so the rival's strokes stay redacted until voting opens.
+  const strokesVisibleFor = (s) => withStrokes && canSeeStrokes(phase, side, s);
 
   return {
     id: String(doc._id),
@@ -233,7 +236,7 @@ export function battleView(doc, refs, userId, now, withStrokes) {
         updatedAt: entry.updatedAt || 0,
         submittedAt: entry.submittedAt || 0,
         rev: entry.rev || 0,
-        strokes: showStrokes ? entry.strokes || [] : null,
+        strokes: strokesVisibleFor(s) ? entry.strokes || [] : null,
       };
     }),
     myVote: doc.votes?.[userId] || null,
@@ -308,8 +311,9 @@ export async function listBattles(userId, input = {}, deps = {}) {
   // A list never renders artwork, and an entry can carry hundreds of strokes, so
   // the pixels stay out of the sort. The pre-phase-machine documents key their
   // entries by group id instead of slot, and those are only ever visible to a
-  // member of one of those groups.
-  const fields = { order: 0, 'entries.A.strokes': 0, 'entries.B.strokes': 0 };
+  // member of one of those groups. `order` stays in: it is a handful of user ids
+  // per side, and dropping it made every turn in the feed silently null.
+  const fields = { 'entries.A.strokes': 0, 'entries.B.strokes': 0 };
   for (const form of groupForms) fields[`entries.${form}.strokes`] = 0;
 
   const rows = await competitions.find(visible).project(fields).sort({ createdAt: -1 }).limit(input.limit || 40).toArray();
@@ -577,6 +581,15 @@ export async function endTurn(userId, input = {}, deps = {}) {
   return { ok: true, next: turnWindowFor(after, check.side, check.turn.endsAt) };
 }
 
+// Strokes round-trip through JSON and through Mongo, so compare them on their
+// canonical form rather than key order.
+function canonicalStroke(stroke) {
+  if (!stroke || typeof stroke !== 'object') return JSON.stringify(stroke ?? null);
+  if (Array.isArray(stroke)) return `[${stroke.map(canonicalStroke).join(',')}]`;
+  const keys = Object.keys(stroke).sort();
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalStroke(stroke[k])}`).join(',')}}`;
+}
+
 export async function submitEntry(userId, input = {}, deps = {}) {
   const now = input.now || Date.now();
   const invalid = validateSyncPayload(input.strokes, input.byteLength);
@@ -587,6 +600,18 @@ export async function submitEntry(userId, input = {}, deps = {}) {
   if (!check.ok) throw new BattleError(check.status, check.error);
   if (doc.entries?.[check.side]?.submittedAt) {
     return { ok: true, submittedAt: doc.entries[check.side].submittedAt, already: true };
+  }
+
+  // A team draws on one shared canvas, so submitting it locks it in for every
+  // member. A member whose client is behind — or who never received a
+  // teammate's strokes — would otherwise replace the whole team's work with a
+  // shorter copy of it. A submission therefore has to carry the synced strokes
+  // as an unchanged prefix and may only append to them.
+  const synced = doc.entries?.[check.side]?.strokes || [];
+  const dropsWork = input.strokes.length < synced.length
+    || synced.some((stroke, i) => canonicalStroke(stroke) !== canonicalStroke(input.strokes[i]));
+  if (dropsWork) {
+    throw new BattleError(409, `Your team already drew ${synced.length} stroke${synced.length === 1 ? '' : 's'} — reload the battle so you do not drop their work.`);
   }
 
   const competitions = await collection(deps, 'competitions');

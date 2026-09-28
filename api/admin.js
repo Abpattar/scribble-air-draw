@@ -7,11 +7,11 @@ import {
   profileCollection,
   requestsCollection,
 } from '../src/lib/mongodb.js';
-import { ensurePlans, publicPlan, PRO_FEATURES, FEATURE_CATALOG } from './lib/catalog.js';
-import { safeObjectId } from './lib/ids.js';
-import { phaseOf } from './lib/battle.js';
-import { cancelBattlesForGroup } from './lib/battleStore.js';
-import { CANCEL_REASON } from './lib/battle.js';
+import { ensurePlans, publicPlan, PRO_FEATURES, FEATURE_CATALOG } from '../api-lib/catalog.js';
+import { safeObjectId } from '../api-lib/ids.js';
+import { phaseOf } from '../api-lib/battle.js';
+import { cancelBattlesForGroup } from '../api-lib/battleStore.js';
+import { CANCEL_REASON } from '../api-lib/battle.js';
 
 // Consolidated admin endpoint. On Vercel each rewrite in vercel.json maps a
 // legacy path to this handler with a ?route= query param:

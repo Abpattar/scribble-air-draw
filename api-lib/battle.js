@@ -387,6 +387,10 @@ export function checkSync(doc, userId, now) {
   const guard = participantGuard(doc, userId);
   if (guard) return guard;
   if (phaseOf(doc, now) !== 'drawing') return DENIED(400, 'The drawing window is over.');
+  // Handing the slot back is final. Without this the next sync of a request that
+  // was already in flight would land after the player was done, so their own
+  // drawing would keep growing on a canvas they no longer own.
+  if (participantOf(doc, userId)?.turnEndedAt) return DENIED(409, 'You already finished your turn.');
   const turn = playerTurnFor(doc, userId);
   if (!turn) return DENIED(400, 'Your team has no drawing slot.');
   if (now >= turn.graceEndsAt) return DENIED(409, 'Your turn is over — those strokes were not saved.');
@@ -412,12 +416,16 @@ export function checkVote(doc, userId, now) {
 // Asking for pixel data is a traffic-budget question, never a permission one:
 // while the drawing window is open the artwork is the players' own work in
 // progress, so only the battle's own participants may read it — anyone else
-// watching an opponent draw is watching a spoiler. Once the window closes the
-// artwork is public, because that is when people have to see it in order to
-// vote on it. The pixels are redacted from the view, not refused: everything
-// else about the battle (participants, timings, stroke counts) stays public.
-export function canSeeStrokes(phase, side) {
-  return phase !== 'drawing' || Boolean(side);
+// watching an opponent draw is watching a spoiler. Within the battle, a player
+// may read their *own* team's canvas and nobody else's: the rival side is still
+// being drawn, and seeing it early decides the vote before it opens. Once the
+// window closes the artwork is public, because that is when people have to see
+// it in order to vote on it. The pixels are redacted from the view, not refused:
+// everything else about the battle (participants, timings, stroke counts) stays
+// public.
+export function canSeeStrokes(phase, viewerSide, side) {
+  if (phase !== 'drawing') return true;
+  return Boolean(viewerSide) && viewerSide === side;
 }
 
 export function checkCancel(doc, userId) {

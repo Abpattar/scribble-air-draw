@@ -53,6 +53,8 @@ interface Props {
 // Only the current turn owner pushes strokes, and only the ones drawn since the
 // last push, so the payload is proportional to new work, never to total work.
 const SYNC_EVERY_MS = 5000;
+// How far inside the server's grace deadline the last push of a slot is made.
+const FLUSH_LEAD_MS = 400;
 
 const PHASE_META: Record<BattlePhase, { label: string; color: string; bg: string }> = {
   inviting: { label: 'Inviting', color: 'var(--kid-blue)', bg: 'rgba(47,155,255,0.12)' },
@@ -392,6 +394,19 @@ function DrawingStage({
       if (!document.hidden) void pushRef.current();
     }, SYNC_EVERY_MS);
     return () => clearInterval(t);
+  }, [isDuel, started, turnLive, turnKey]);
+
+  // A slot that ends by timeout has no endTurn() to flush it, and the server
+  // stops accepting strokes at the grace deadline — so the interval alone can
+  // strand whatever was drawn since its last tick. One more push is scheduled
+  // just inside that deadline. A hidden tab is covered by the same timer.
+  useEffect(() => {
+    if (isDuel || !started || !turnLive || !turn) return;
+    const delay = Math.max(0, turn.graceEndsAt - now - FLUSH_LEAD_MS);
+    const t = setTimeout(() => {
+      void pushRef.current();
+    }, delay);
+    return () => clearTimeout(t);
   }, [isDuel, started, turnLive, turnKey]);
 
   async function startTurn() {

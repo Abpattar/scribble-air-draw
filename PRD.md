@@ -64,7 +64,7 @@ The app is gated by **features**, not by price checks. Every plan in MongoDB has
 
 **Rules:**
 - A user is *Pro* when `subscribed === true` **or** `subscribedUntil > now`.
-- Free-tier fallback `FREE_TIER_FEATURES` is duplicated client-side (`src/hooks/useProfile.ts`) and server-side (`api/lib/catalog.js`) so both agree even before the DB is reachable.
+- Free-tier fallback `FREE_TIER_FEATURES` is duplicated client-side (`src/hooks/useProfile.ts`) and server-side (`api-lib/catalog.js`) so both agree even before the DB is reachable.
 - **Client entitlement trust**: if a profile reports a paying subscription but the server plan lookup hiccups, the client force-unlocks everything for that user (`entitlementFeatures`). The server remains the source of truth for writes.
 - The first two templates alphabetically are marked `free: true` and are pickable by anyone.
 
@@ -352,7 +352,7 @@ interface Stroke {
 
 ## B5. Serverless API architecture
 
-**Constraint:** Vercel Hobby = **12 serverless functions max**. Solved by consolidating *every* legacy route into **8 top-level handlers**; `vercel.json` rewrites translate old URLs into `?route=` dispatchers.
+**Constraint:** Vercel Hobby = **12 serverless functions max**. Solved by consolidating *every* legacy route into **8 top-level handlers** — which is all `api/` may contain; `vercel.json` rewrites translate old URLs into `?route=` dispatchers.
 
 ```
 api/profile.js        profile read/write (drawings, favorites, history, nickname, bio, subscription)
@@ -362,8 +362,9 @@ api/friends.js        friend graph + pending-request count
 api/groups.js         group CRUD (+ :groupId actions)
 api/competitions.js   battle list/create (+ :competitionId sync|submit|vote, lazy settle)
 api/admin.js          ?route=overview|users|user|billing|plans|plan|group|competition
-api/lib/*             plans constants, plan/catalog/entitlement seeds, battle constants
 ```
+
+Shared helper modules live in **`api-lib/`**, *outside* `api/`, because Vercel turns every `.js` file under `api/` — nested or not — into its own Serverless Function and would blow the limit.
 
 The **Vercel rewrite table** (`vercel.json`) maps each legacy path to a dispatcher, then falls back `(.*)` → `/index.html` (SPA). `dist/` is the output directory; build = `tsc -b && vite build`.
 

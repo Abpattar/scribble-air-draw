@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Dependency-free lifecycle test for the battle phase machine.
 //
-// It drives api/lib/battle.js — the pure rules module, with a fake clock — through
+// It drives api-lib/battle.js — the pure rules module, with a fake clock — through
 // every phase of a duel and of a group battle with unequal teams, plus the
 // permission matrix, the payload caps and the invitation/ready timeouts, and
-// runs the real view from api/lib/battleStore.js over those same documents to
+// runs the real view from api-lib/battleStore.js over those same documents to
 // check what a caller is actually sent. Every assertion is "read the same
 // document at a later time", which is exactly what a refresh, a reconnect or a
 // cold start does, so a phase can never depend on anything the server was
@@ -43,8 +43,8 @@ import {
   turnIndexFor,
   turnWindowFor,
   validateSyncPayload,
-} from '../api/lib/battle.js';
-import { BattleError, battleView, cancelBattle, listBattles } from '../api/lib/battleStore.js';
+} from '../api-lib/battle.js';
+import { BattleError, battleView, cancelBattle, listBattles } from '../api-lib/battleStore.js';
 
 const T0 = 1_700_000_000_000;
 const MIN = 60_000;
@@ -86,7 +86,7 @@ function ok(label, condition, detail = '') {
   }
 }
 
-// Builds a document exactly the way api/lib/battleStore.js inserts one.
+// Builds a document exactly the way api-lib/battleStore.js inserts one.
 function makeDoc({ kind = 'group', createdBy, sides, invitesEndsAt = 0 }) {
   const participants = {};
   for (const [side, ids] of Object.entries(sides)) {
@@ -712,14 +712,16 @@ section('13. An artwork in progress belongs to the battle, not to whoever asks')
 //
 // `?strokes=1` is a traffic-budget question, never a permission one. While the
 // drawing window is open the pixels are the players' own un-submitted work, so
-// the view redacts them for anyone outside the battle. From voting onwards they
-// are public — that is when people have to see the artwork to vote on it.
+// the view redacts them for anyone outside the battle — and inside it, from the
+// other team, whose canvas is still being drawn. From voting onwards they are
+// public: that is when people have to see the artwork to vote on it.
 
-check('the drawing window is private', canSeeStrokes('drawing', null), false);
-check('a participant is inside the battle', canSeeStrokes('drawing', 'A'), true);
-check('voting shows the artwork to everyone', canSeeStrokes('voting', null), true);
-check('a finished battle stays public', canSeeStrokes('closed', null), true);
-check('before the first stroke there is nothing to hide', canSeeStrokes('countdown', null), true);
+check('the drawing window is private', canSeeStrokes('drawing', null, 'A'), false);
+check('a player sees their own side', canSeeStrokes('drawing', 'A', 'A'), true);
+check('but not the other side, which is still being drawn', canSeeStrokes('drawing', 'A', 'B'), false);
+check('voting shows the artwork to everyone', canSeeStrokes('voting', null, 'A'), true);
+check('a finished battle stays public', canSeeStrokes('closed', null, 'A'), true);
+check('before the first stroke there is nothing to hide', canSeeStrokes('countdown', null, 'A'), true);
 
 const live = makeDoc({ createdBy: 'a1', sides: { A: ['a1', 'a2'], B: ['b1', 'b2'] } });
 clock(T0);
@@ -742,9 +744,9 @@ const sizes = (view) => view.entries.map((e) => e.strokes && e.strokes.length);
 check('a stranger asking for pixels gets none', pixels(battleView(live, noRefs, 'nosy', now, true)), [null, null]);
 check('and is told which side is theirs: none', battleView(live, noRefs, 'nosy', now, true).mySide, null);
 check('the stroke counts stay public', battleView(live, noRefs, 'nosy', now, true).entries.map((e) => e.strokeCount), [2, 1]);
-check('the organiser still sees the work in progress', sizes(battleView(live, noRefs, 'a1', now, true)), [2, 1]);
-check('a teammate on the same side does too', sizes(battleView(live, noRefs, 'a2', now, true)), [2, 1]);
-check('the other side may watch it live', sizes(battleView(live, noRefs, 'b1', now, true)), [2, 1]);
+check('the organiser sees their own side in progress', sizes(battleView(live, noRefs, 'a1', now, true)), [2, null]);
+check('a teammate on the same side does too', sizes(battleView(live, noRefs, 'a2', now, true)), [2, null]);
+check('the other side sees only its own canvas', sizes(battleView(live, noRefs, 'b1', now, true)), [null, 1]);
 check('a declined player is outside the battle', pixels(battleView(live, noRefs, 'b2', now, true)), [null, null]);
 check('a metadata read is unchanged for a participant', pixels(battleView(live, noRefs, 'a1', now, false)), [null, null]);
 
@@ -773,7 +775,7 @@ const oldLive = {
 const oldRefs = { profiles: new Map(), groups: new Map([['g1', { _id: 'g1', name: 'G1', memberIds: ['a1'] }]]) };
 clock(T0);
 check('an old battle can still be drawing', phaseOf(oldLive, now), 'drawing');
-check('the drawing group keeps seeing its own artwork', sizes(battleView(oldLive, oldRefs, 'a1', now, true)), [1, 2]);
+check('the drawing group keeps seeing its own artwork', sizes(battleView(oldLive, oldRefs, 'a1', now, true)), [1, null]);
 check('a stranger cannot watch a live old battle', pixels(battleView(oldLive, oldRefs, 'nosy', now, true)), [null, null]);
 clock(oldLive.voteEndTime);
 check('and it opens up with the vote', sizes(battleView(oldLive, oldRefs, 'nosy', now, true)), [1, 2]);
@@ -872,7 +874,10 @@ ok('the battle query is scoped, not the whole collection', Object.keys(feedComp)
 check('by the caller\'s own participation', Object.keys(feedClauses[0] || {}), ['participants.a1']);
 check('and by the groups they are in', [feedClauses[1]?.groupA?.$in, feedClauses[2]?.groupB?.$in].map((v) => v?.includes('group-a')), [true, true]);
 ok('the query is still sorted and capped', feedRows.log.sorts[0]?.createdAt === -1 && feedRows.log.limits[0] > 0);
-ok('the read projects the turn order away', feedRows.log.projections.some((p) => p?.order === 0));
+// `order` is a handful of user ids per side; projecting it away made every turn
+// in the feed silently null while the list still asked for one.
+ok('the read keeps the turn order, so the feed can name a turn', !feedRows.log.projections.some((p) => p?.order === 0));
+check('and the feed reports the very turn the document supports', feed.active[0].turn, playerTurnFor(running, 'a1'));
 ok('and the artwork out of both entry slots', feedRows.log.projections.some((p) => p?.['entries.A.strokes'] === 0 && p?.['entries.B.strokes'] === 0));
 check('the list carries no stroke data at all', JSON.stringify(feed).includes('pts'), false);
 check('but the entry metadata survives', feed.active[0].submitted, true);

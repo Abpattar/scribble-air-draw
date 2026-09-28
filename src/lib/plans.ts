@@ -1,4 +1,4 @@
-// Client-side mirror of the server's plan seeds (api/lib/catalog.js) so the
+// Client-side mirror of the server's plan seeds (api-lib/catalog.js) so the
 // plans UI (in-app modal + homepage pricing) always has data to render even if
 // /api/plans is unreachable. The server response replaces these when it loads.
 

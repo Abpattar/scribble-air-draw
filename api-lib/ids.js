@@ -26,13 +26,21 @@ export function idForms(id) {
 }
 
 // Same, flattened over many ids.
+//
+// Duplicates are compared by *kind*, not by printed value: a stored ObjectId and
+// the same id as a string are two different query terms, and Mongo only matches
+// an ObjectId `_id` against an ObjectId. Comparing them as text silently threw
+// the ObjectId away, so every filter built here could only ever find documents
+// whose `_id` was a string — which is none of the groups, battles, friendships or
+// invitations, because those are all inserted without an `_id` and come back from
+// Mongo as ObjectIds.
+const idKey = (value) => (value instanceof ObjectId ? `oid:${value.toHexString()}` : `str:${String(value)}`);
+
 export function idIn(ids) {
   const out = [];
   for (const id of ids) {
     for (const form of idForms(id)) {
-      if (!out.some((x) => (x instanceof ObjectId ? x.toHexString() : String(x)) === (form instanceof ObjectId ? form.toHexString() : String(form)))) {
-        out.push(form);
-      }
+      if (!out.some((x) => idKey(x) === idKey(form))) out.push(form);
     }
   }
   return out;

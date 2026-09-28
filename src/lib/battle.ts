@@ -1,4 +1,4 @@
-// Shared constants for battles (mirrored server-side in api/lib/battle.js —
+// Shared constants for battles (mirrored server-side in api-lib/battle.js —
 // keep both copies in sync). The server owns the schedule: it returns the
 // current phase and every deadline with the battle, so the client only counts
 // down to what it was told and never decides a phase itself.
@@ -34,7 +34,7 @@ export const BATTLE_PROMPTS = [
 // Emoji avatars users + groups can pick.
 export const AVATARS = ['🦊', '🐼', '🦄', '🐸', '🐙', '🐯', '🐨', '🐝', '🦋', '🚀', '🎨', '🌟', '🌈', '🍉', '⚡', '😎'];
 
-// Why a battle stopped early. Mirrors CANCEL_REASON in api/lib/battle.js.
+// Why a battle stopped early. Mirrors CANCEL_REASON in api-lib/battle.js.
 export const CANCEL_REASON = {
   NOBODY_ACCEPTED: 'nobody_accepted',
   CREATOR: 'creator_cancelled',

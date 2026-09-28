@@ -3,8 +3,8 @@ import Razorpay from 'razorpay';
 import { verifyToken } from '@clerk/backend';
 import { requireUser } from '../src/lib/serverAuth.js';
 import { planCollection, profileCollection } from '../src/lib/mongodb.js';
-import { PERIOD_MS } from './lib/plans.js';
-import { ensurePlans } from './lib/catalog.js';
+import { PERIOD_MS } from '../api-lib/plans.js';
+import { ensurePlans } from '../api-lib/catalog.js';
 
 // Consolidated Razorpay billing endpoint. On Vercel each rewrite below maps a
 // legacy path to this handler with a ?route= query param:

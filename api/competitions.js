@@ -1,9 +1,9 @@
 import { requireUserId } from '../src/lib/serverAuth.js';
 import { competitionCollection, profileCollection } from '../src/lib/mongodb.js';
-import { idFilter } from './lib/ids.js';
-import { BattleError, castVote, cancelBattle, createBattle, endTurn, getBattle, listBattles, markReady, respond, submitEntry, syncStrokes } from './lib/battleStore.js';
+import { idFilter } from '../api-lib/ids.js';
+import { BattleError, castVote, cancelBattle, createBattle, endTurn, getBattle, listBattles, markReady, respond, submitEntry, syncStrokes } from '../api-lib/battleStore.js';
 
-// HTTP adapter over ./lib/battleStore.js. It owns nothing but authentication,
+// HTTP adapter over ../api-lib/battleStore.js. It owns nothing but authentication,
 // routing, the Mongo read wave and the status codes: the identity read always
 // runs in the same wave as the battle read, so a whole handler is two round
 // trips. Anything unexpected is a 503, never a 500; every refusal from the

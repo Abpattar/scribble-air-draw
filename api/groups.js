@@ -5,9 +5,9 @@ import {
   profileCollection,
   requestsCollection,
 } from '../src/lib/mongodb.js';
-import { safeObjectId } from './lib/ids.js';
-import { cancelBattlesForGroup } from './lib/battleStore.js';
-import { CANCEL_REASON } from './lib/battle.js';
+import { safeObjectId } from '../api-lib/ids.js';
+import { cancelBattlesForGroup } from '../api-lib/battleStore.js';
+import { CANCEL_REASON } from '../api-lib/battle.js';
 
 // Pending invitations per group, for the group list + detail payloads.
 async function pendingInvites(groupIds) {

@@ -1,6 +1,6 @@
 import { requireUserId } from '../src/lib/serverAuth.js';
 import { profileCollection } from '../src/lib/mongodb.js';
-import { ensurePlans, entitlementFor } from './lib/catalog.js';
+import { ensurePlans, entitlementFor } from '../api-lib/catalog.js';
 
 // Fields that are strictly server-controlled and must never be writable by
 // the client, mirroring how `subscribed` already worked.

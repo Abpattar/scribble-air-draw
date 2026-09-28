@@ -1,4 +1,4 @@
-import { loadPlans, seedPlanPayload, publicPlan } from './lib/catalog.js';
+import { loadPlans, seedPlanPayload, publicPlan } from '../api-lib/catalog.js';
 
 export default async function handler(request, response) {
   if (request.method !== 'GET') {

@@ -1,4 +1,4 @@
-import { planCollection } from '../../src/lib/mongodb.js';
+import { planCollection } from '../src/lib/mongodb.js';
 
 export const FEATURE_CATALOG = [
   { key: 'templates', label: 'Trace template library' },

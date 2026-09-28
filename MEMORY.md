@@ -39,7 +39,12 @@ MongoDB database name `neonair` may NOT change (that's where the data lives).
   `/api/create-subscription`, `/api/verify-payment`, `/api/check-subscription`,
   `/api/cancel-subscription`, `/api/razorpay-webhook`.
 - `api/profile.js`, `api/plans.js`, `api/friends.js`, `api/groups.js`,
-  `api/competitions.js`, `api/admin.js` — consolidated serverless functions.
+  `api/competitions.js`, `api/admin.js`, `api/requests.js` — consolidated
+  serverless functions. **These 8 files are the whole of `api/`.**
+- `api-lib/` — shared server modules imported by the handlers
+  (`battle.js` phase machine, `battleStore.js` Mongo reads/writes,
+  `catalog.js` plan seeds, `ids.js`, `plans.js`). Deliberately *outside*
+  `api/` so Vercel does not turn each one into a function.
 - `server/devServer.js` + `server/vercelDevPlugin.js` — local API shim so
   `npm run dev` (Vite on 5173) also serves the real handlers on 8787 and
   proxies `/api` → it. **Handlers are imported ONCE at startup** — after
@@ -102,6 +107,13 @@ ids then `POST /v10/projects/{id}/env?upsert=true`.
 
 ## 6. What was fixed recently (session log, newest last)
 
+- **`c206152` failed to deploy — Hobby 12-function limit.** Not a code bug: the
+  build and all 185 battle checks were green. Vercel counts every `.js` under
+  `api/`, and the commit left 8 handlers + 5 files in `api/lib/` = **13**.
+  `api/lib/` → `api-lib/` (imports become `../api-lib/…`, including the
+  helpers' own `../src/lib/mongodb.js`). `api/` is now exactly the 8 handlers.
+  Proof: 8/8 handlers import cleanly, `npm run build` green, all 14 `/api/*`
+  routes answer through the real handlers on the dev shim.
 - **Submit button did nothing + create-battle 500s:**
   - `CompetitionsModal` Submit was wired to `onSubmit={load}` — a refresh, not
     an upload. Now `DrawingStage.doSubmit()` POSTs `{ action: 'submit',
@@ -163,21 +175,31 @@ ids then `POST /v10/projects/{id}/env?upsert=true`.
 
 ## 7. Commits / deployment state
 
-- Current: `6b2acbb` = real submit + 2-wave groups/friends + fail-fast Mongo.
-  Alias `scribble-ai.vercel.app` → newest deploy `scribble-ciyoxq1a8-…`.
-- Battle work: `60b886f` (batched queries + professional battle UI),
-  `d5603ea` (parallel reads, mongo retry, quieter client errors).
-- Older: `5ee1d50` (friends/groups/battles robustness), `617e09e` (client
-  entitlement + free templates + backdrop close), `c87c107` (camera wake fix
-  + empty replay/record hints), `12cba2c` (one-time Razorpay order flow +
-  Clerk v5 + delete leaked test files).
+- **Production is two commits behind and the live alias is stale.** The GitHub
+  integration IS working (push → `vercel[bot]` deploys automatically), but:
+  - `c206152` (battles/requests hub) — **deployment FAILED** on 2026-09-27
+    (function count, §6). Fixed by moving `api/lib/` → `api-lib/`.
+  - `54efde3` (floating-UI redesign) — deployment succeeded, but
+    `scribble-ai.vercel.app` still serves a **pre-redesign** bundle
+    (no `My Drawings` / `Brush size` strings in the live JS), i.e. the
+    production alias is pinned to an older deployment. Re-pin after the next
+    successful deploy, and verify with a string that only exists in the new
+    bundle, not just the hash.
+- Older: `6b2acbb` (real submit + 2-wave groups/friends + fail-fast Mongo),
+  `6dac296` (untrack prompt.txt), `60b886f`, `d5603ea`, `5ee1d50`, `617e09e`,
+  `c87c107`, `12cba2c`.
 - Live: `https://scribble-ai.vercel.app` (alias pinned manually after every
   deploy; per-deploy URLs look like
-  `scribble-xxxxxxxx-adityas-projects-cf1e02fd.vercel.app`). Vercel token in
-  `~/.local/share/com.vercel.cli/auth.json`; project id in `.vercel/project.json`
-  (`prj_y0H0V26pK6j1aJwF7igTOiIujo1n`, team `team_Kxe5J05W0LbH6jFkxmKW1vdE`).
-- GitHub CLI (`gh`) is authed as `Abpattar`. Production deploy URL:
-  `scribble-hcfo26h6q-adityas-projects-cf1e02fd.vercel.app`.
+  `scribble-xxxxxxxx-adityas-projects-cf1e02fd.vercel.app`). Project id in
+  `.vercel/project.json` (`prj_y0H0V26pK6j1aJwF7igTOiIujo1n`, team
+  `team_Kxe5J05W0LbH6jFkxmKW1vdE`).
+- **The saved Vercel CLI token is dead** (API answers `403 invalidToken` for
+  `v2/user`), so `vercel` cannot inspect, deploy or re-pin until you run
+  `vercel login` again. GitHub auto-deploy does not need it.
+- GitHub CLI (`gh`) is authed as `Abpattar`. To check a push's deploy result
+  without the Vercel token:
+  `gh api repos/Abpattar/scribble-air-draw/commits/<sha>/status --jq '.statuses[].state'`
+  (and `.../commits/<sha>/status` description names the failed deployment id).
 
 ## 8. Handy commands
 
@@ -190,6 +212,16 @@ node node_modules/vite/bin/vite.js
 node node_modules/typescript/bin/tsc -b
 node node_modules/vite/bin/vite.js build
 
+# battle phase-machine proof (185 checks, no deps, fake clock)
+node scripts/battle-lifecycle.mjs
+
+# every handler must import cleanly — Vercel bundles each one on its own, so a
+# broken path only shows up in the deploy, never in `vite build`
+node --input-type=module -e "for (const f of (await import('node:fs')).readdirSync('api')) await import('./api/'+f)"
+
+# function budget: Hobby allows 12; `api/` must hold only the 8 handlers
+find api -name '*.js' | wc -l
+
 # stop local servers (note: pkill patterns can match YOUR OWN shell cmdline —
 # use exact pids, not pkill -f with a substring you also type)
 kill $(cat /tmp/opencode/vite.pid)   # vite + it respawned api? no — kills only vite
@@ -200,7 +232,8 @@ vercel alias set <deployment-url> scribble-ai.vercel.app
 
 ## 9. Gotchas / pitfalls
 
-- **Restart dev server after editing `api/*.js`** (imports cached at startup).
+- **Restart dev server after editing `api/*.js` or `api-lib/*.js`** (imports
+  cached at startup).
 - **`pkill -f '<pattern>'` can kill the shell running the command** if the
   pattern appears in that same command line — prefer `kill <pid>`.
 - **Vercel alias is manual** — re-pin after every deploy or the old bundle
@@ -208,8 +241,13 @@ vercel alias set <deployment-url> scribble-ai.vercel.app
   triggers a CI Production deploy, so after `vercel deploy --prod` check
   `vercel ls` and pin the **newest** URL (the CLI auto-aliases the throwaway
   `scribble-ai-one.vercel.app`; pin `scribble-ai.vercel.app` explicitly).
-- **12-function Hobby limit** — already solved by consolidation; don't add
-  separate top-level `api/*.js` files without folding them into a dispatcher.
+- **12-function Hobby limit** — Vercel turns **every `.js` file under `api/`,
+  nested or not, into its own function**. So `api/` must contain the 8 handlers
+  and nothing else; shared helpers live in `api-lib/`, which is outside `api/`
+  and therefore not deployed as a function. Counting only the top-level files
+  is what broke production on 2026-09-27 (see §6). Don't add a top-level
+  `api/*.js` without folding it into a dispatcher, and don't move a helper back
+  into `api/`.
 - **Never rename the Mongo database** `neonair`; never commit `*.env` (it's
   gitignored; secrets live only in `.env` + Vercel).
 - **`gh` renames the repo** but local `git remote` needs `git remote set-url`

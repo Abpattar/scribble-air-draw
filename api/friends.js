@@ -1,6 +1,6 @@
 import { requireUserId } from '../src/lib/serverAuth.js';
 import { friendshipCollection, profileCollection } from '../src/lib/mongodb.js';
-import { safeObjectId } from './lib/ids.js';
+import { safeObjectId } from '../api-lib/ids.js';
 
 const pair = (a, b) => (a < b ? [a, b] : [b, a]);
 

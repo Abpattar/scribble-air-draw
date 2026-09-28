@@ -6,8 +6,8 @@ import {
   profileCollection,
   requestsCollection,
 } from '../src/lib/mongodb.js';
-import { idIn } from './lib/ids.js';
-import { BattleError, respond as respondToBattle } from './lib/battleStore.js';
+import { idIn } from '../api-lib/ids.js';
+import { BattleError, respond as respondToBattle } from '../api-lib/battleStore.js';
 import { respondToFriendship } from './friends.js';
 
 // The one durable notification surface: friend requests, group invitations and
