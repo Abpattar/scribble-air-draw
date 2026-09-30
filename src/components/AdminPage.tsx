@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Shield, LayoutGrid, Users, CreditCard, Eye, Settings, Plus, Trash2, Check, X } from 'lucide-react';
+import { ArrowLeft, Shield, LayoutGrid, Users, CreditCard, Eye, Settings, Plus, Trash2, Check, X, Crown, AlertTriangle, Layers } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../hooks/useAuth';
 import type { Stroke } from '../lib/engine';
 import { renderStrokesToCanvas } from '../lib/strokeRenderer';
+
+type AdminTab = 'overview' | 'users' | 'billing' | 'content' | 'plans';
 
 interface Props {
   superadmin: boolean;
@@ -24,7 +27,7 @@ const PERIODS = ['monthly', 'yearly'];
 export default function AdminPage({ superadmin, onBack, onChanged }: Props) {
   const api = useApi();
   const { user } = useAuth();
-  const [tab, setTab] = useState<'overview' | 'users' | 'billing' | 'content' | 'plans'>('overview');
+  const [tab, setTab] = useState<AdminTab>('overview');
   const [stats, setStats] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [billing, setBilling] = useState<any[]>([]);
@@ -232,293 +235,392 @@ export default function AdminPage({ superadmin, onBack, onChanged }: Props) {
     setEdits((prev) => ({ ...prev, [planId]: { ...base, features } }));
   }
 
-  const card = (label: string, value: any, color = 'var(--accent)') => (
-    <div style={{ flex: 1, borderRadius: 10, padding: '10px 8px', background: 'var(--panel-bg)', border: '1px solid var(--chip-border)', textAlign: 'center', minWidth: 70 }}>
-      <div style={{ fontSize: 18, fontWeight: 800, color }}>{value}</div>
-      <div style={{ fontSize: 9.5, color: 'var(--text-dim)' }}>{label}</div>
+  const TABS: { key: AdminTab; label: string; Icon: LucideIcon }[] = [
+    { key: 'overview', label: 'Overview', Icon: LayoutGrid },
+    { key: 'users', label: 'Users', Icon: Users },
+    { key: 'billing', label: 'Billing', Icon: CreditCard },
+    { key: 'content', label: 'Groups & Battles', Icon: Eye },
+    ...(superadmin ? [{ key: 'plans' as AdminTab, label: 'Plans', Icon: Settings }] : []),
+  ];
+
+  const stat = (label: string, value: any, tone: string) => (
+    <div className="admin-stat">
+      <span className={'admin-stat-dot ' + tone} />
+      <span className="admin-stat-value">{value}</span>
+      <span className="admin-stat-label">{label}</span>
     </div>
   );
 
   const inputStyle: React.CSSProperties = {
-    fontSize: 11.5,
-    padding: '5px 8px',
-    borderRadius: 8,
-    border: '1px solid var(--chip-border)',
-    background: 'var(--panel-bg)',
+    fontSize: 12.5,
+    padding: '9px 11px',
+    borderRadius: 'var(--r-sm)',
+    border: '1px solid var(--swatch-item-border)',
+    background: 'var(--input-bg)',
     color: 'var(--text)',
     width: '100%',
+    fontFamily: 'var(--font)',
+    outline: 'none',
   };
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: 80,
-        background: 'linear-gradient(160deg, var(--bg) 0%, var(--bg2) 100%)',
-        color: 'var(--text)',
-        overflowY: 'auto',
-        padding: 'max(14px, env(safe-area-inset-top)) 14px 30px',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <div onClick={onBack} className="gmini" title="Back to studio"><ArrowLeft size={16} /></div>
-          <div style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--accent2)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Shield size={16} />
+    <div className="admin-shell">
+      <div className="admin-wrap">
+        {/* ── header ── */}
+        <header className="admin-head">
+          <button type="button" className="admin-back" onClick={onBack} title="Back to studio" aria-label="Back to studio">
+            <ArrowLeft size={17} />
+          </button>
+          <span className="admin-mark">
+            <Shield size={17} strokeWidth={2.1} />
+          </span>
+          <div className="admin-headtext">
+            <h1 className="admin-title">Admin console</h1>
+            <p className="admin-sub">{user?.email || ''}</p>
           </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.2 }}>Admin / Super Admin</div>
-            <div style={{ fontSize: 10.5, color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {user?.email || ''}
-            </div>
-          </div>
-        </div>
-        <div style={{ fontSize: 10, fontWeight: 700, background: superadmin ? 'rgba(var(--clay-rgb),0.15)' : 'rgba(var(--kid-blue-rgb),0.15)', color: superadmin ? 'var(--kid-pink)' : 'var(--kid-blue)', padding: '4px 10px', borderRadius: 20, flexShrink: 0 }}>
-          {superadmin ? 'SUPERADMIN' : 'ADMIN'}
-        </div>
-      </div>
+          <span className={'admin-role' + (superadmin ? ' admin-role--super' : '')}>
+            {superadmin ? <Crown size={12} /> : <Shield size={12} />}
+            {superadmin ? 'Superadmin' : 'Admin'}
+          </span>
+        </header>
 
-      <div className="flex gap-1 flex-wrap mb-3">
-        {(
-          [
-            ['overview', 'Overview', LayoutGrid],
-            ['users', 'Users', Users],
-            ['billing', 'Billing', CreditCard],
-            ['content', 'Groups & Battles', Eye],
-            ...(superadmin ? ([['plans', 'Plans', Settings]] as const) : []),
-          ] as const
-        ).map(([t, label, Icon]) => (
-          <div key={t} className="gbtn" style={{ width: 'auto', padding: '7px 12px', color: tab === t ? 'var(--text)' : undefined, background: tab === t ? 'rgba(var(--kid-blue-rgb),0.15)' : undefined, borderColor: tab === t ? 'rgba(var(--kid-blue-rgb),0.4)' : undefined }} onClick={() => setTab(t)}>
-            <Icon size={13} /> {label}
-          </div>
-        ))}
-      </div>
+        {/* ── tabs ── */}
+        <nav className="admin-tabs" role="tablist" aria-label="Admin sections">
+          {TABS.map(({ key, label, Icon }) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              className={'admin-tab' + (tab === key ? ' is-active' : '')}
+              onClick={() => setTab(key)}
+            >
+              <Icon size={14} strokeWidth={2} />
+              {label}
+            </button>
+          ))}
+        </nav>
 
-      {error && <div style={{ fontSize: 11.5, color: 'var(--kid-pink)', marginBottom: 8 }}>{error}</div>}
-
-      {tab === 'overview' && stats && (
-        <>
-          <div className="flex gap-1.5 mb-2 mt-1">
-            {card('Users', stats.users, 'var(--kid-blue)')}
-            {card('Drawings', stats.drawings, 'var(--kid-green)')}
-            {card('Groups', stats.groups, 'var(--kid-yellow)')}
-            {card('Battles', stats.competitions, 'var(--accent)')}
+        {error && (
+          <div className="admin-error" role="alert">
+            <AlertTriangle size={14} />
+            <span>{error}</span>
           </div>
-          <div className="flex gap-1.5 mb-2">
-            {card('Subscribers', stats.subscribers, 'var(--accent2)')}
-            {card('Revenue', `₹${(stats.revenue / 100).toLocaleString()}`, 'var(--kid-green)')}
-            {card('Payments', stats.payments, 'var(--kid-blue)')}
-            {card('Played', stats.competitionsPlayed, 'var(--kid-pink)')}
-          </div>
-          {stats.newUsers?.length > 0 && (
-            <div style={{ fontSize: 11.5, marginTop: 6 }}>
-              <div style={{ fontWeight: 700, marginBottom: 4 }}>New users</div>
-              {stats.newUsers.map((u: any) => (
-                <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>
-                  <span>{u.nickname || u.email}</span>
-                  <span style={{ color: 'var(--text-dim)' }}>{new Date(u.createdAt).toLocaleDateString()}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
+        )}
 
-      {tab === 'users' && (
-        <div style={{ maxHeight: '64vh', overflowY: 'auto' }}>
-          {users.map((u) => (
-            <div key={u.id} style={{ border: '1px solid var(--chip-border)', borderRadius: 10, padding: 8, marginBottom: 8, background: 'var(--panel-bg)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.nickname || u.email}</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>
-                    {u.email} · {u.drawingCount} drawings · {u.subscribed ? `Pro (${u.plan || 'monthly'})` : 'Free'}
-                    {u.suspended ? ' · ⛔ suspended' : ''}
+        {/* ── body ── */}
+        <main className="admin-panel">
+          {tab === 'overview' && (
+            <>
+              {!stats && <div className="admin-empty">Loading overview…</div>}
+              {stats && (
+                <>
+                  <div className="admin-statgrid">
+                    {stat('Users', stats.users, 'tone-a')}
+                    {stat('Drawings', stats.drawings, 'tone-b')}
+                    {stat('Groups', stats.groups, 'tone-c')}
+                    {stat('Battles', stats.competitions, 'tone-a')}
                   </div>
-                </div>
-                <div className="flex gap-1.5 flex-shrink-0">
-                  <div className="gmini" title="View drawings" onClick={() => viewUser(u.id, u.nickname || u.email)}><Eye size={14} /></div>
-                  {superadmin && (
-                    <select
-                      value={u.role}
-                      onChange={(e) => userAction(u.id, { role: e.target.value })}
-                      style={{ fontSize: 10, padding: '2px 4px', borderRadius: 6, border: '1px solid var(--chip-border)', background: 'var(--panel-bg)', color: 'var(--text)' }}
-                    >
-                      <option value="user">user</option>
-                      <option value="admin">admin</option>
-                      <option value="superadmin">superadmin</option>
-                    </select>
+                  <div className="admin-statgrid">
+                    {stat('Subscribers', stats.subscribers, 'tone-b')}
+                    {stat('Revenue', `₹${(stats.revenue / 100).toLocaleString()}`, 'tone-b')}
+                    {stat('Payments', stats.payments, 'tone-a')}
+                    {stat('Played', stats.competitionsPlayed, 'tone-c')}
+                  </div>
+
+                  {stats.newUsers?.length > 0 && (
+                    <section className="admin-section">
+                      <h2 className="admin-h2">New users</h2>
+                      <div className="admin-list">
+                        {stats.newUsers.map((u: any) => (
+                          <div key={u.id} className="admin-row">
+                            <span className="admin-row-main">{u.nickname || u.email}</span>
+                            <span className="admin-row-meta">{new Date(u.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
                   )}
-                </div>
-              </div>
-              <div className="flex gap-1.5 mt-2">
-                <div className="gbtn" style={{ flex: 1, justifyContent: 'center', color: u.suspended ? 'var(--kid-green)' : 'var(--kid-yellow)' }} onClick={() => userAction(u.id, { suspended: !u.suspended })}>
-                  {u.suspended ? 'Reinstate' : 'Suspend'}
-                </div>
-                <div className="gbtn" style={{ flex: 1, justifyContent: 'center', color: 'var(--kid-pink)' }} onClick={() => clearContent(u.id)}>
-                  Clear content
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tab === 'billing' && (
-        <div style={{ maxHeight: '64vh', overflowY: 'auto' }}>
-          {billing.map((p, i) => (
-            <div key={p.id + i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--chip-border)', fontSize: 11.5 }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.nickname || p.email}</div>
-                <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>{p.plan || '—'} · {new Date(p.ts).toLocaleDateString()}</div>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <span style={{ fontWeight: 700 }}>₹{(p.amount / 100).toFixed(0)}</span>
-                {superadmin && p.userId && (
-                  <div className="gmini" style={{ color: 'var(--kid-pink)' }} title="Cancel subscription" onClick={() => cancelSub(p.userId, p.nickname || p.email)}>
-                    <Trash2 size={13} />
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-          {!billing.length && <div className="stat-row">No payments yet.</div>}
-        </div>
-      )}
-
-      {tab === 'content' && stats && (
-        <div style={{ maxHeight: '64vh', overflowY: 'auto' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, margin: '4px 0' }}>Groups</div>
-          {(stats.groupsList || []).map((g: any) => (
-            <div key={g.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0', fontSize: 11.5 }}>
-              <span>{g.emoji} {g.name} · {g.memberCount} members · {g.wins}W/{g.played}</span>
-              <div className="gmini" style={{ color: 'var(--kid-pink)' }} title="Delete" onClick={() => delGroup(g.id, g.name)}><Trash2 size={13} /></div>
-            </div>
-          ))}
-          <div style={{ fontSize: 11, fontWeight: 700, margin: '8px 0 4px' }}>Battles</div>
-          {(stats.competitionsList || []).map((c: any) => (
-            <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0', fontSize: 11.5 }}>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '78%' }}>{c.prompt} · {c.status} · {c.votes} votes</span>
-              <div className="gmini" style={{ color: 'var(--kid-pink)' }} title="Delete" onClick={() => delCompetition(c.id)}><Trash2 size={13} /></div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tab === 'plans' && superadmin && (
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700 }}>
-              Plans &amp; features <span style={{ color: 'var(--text-dim)', fontWeight: 500 }}>(features gate the app live)</span>
-            </div>
-            <div className="gmini" title="Add plan" onClick={() => { setAdding((a) => !a); setError(''); }}>
-              <Plus size={15} />
-            </div>
-          </div>
-
-          {adding && (
-            <div style={{ border: '1.5px solid var(--accent)', borderRadius: 12, padding: 10, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--panel-bg)' }}>
-              <input style={inputStyle} placeholder="Plan label (e.g. Quarterly)" value={newPlan.label} onChange={(e) => setNewPlan((n) => ({ ...n, label: e.target.value }))} />
-              <div className="flex gap-2">
-                <input style={{ ...inputStyle, width: '45%' }} type="number" min={1} placeholder="₹ price/month basis" value={newPlan.amount} onChange={(e) => setNewPlan((n) => ({ ...n, amount: Number(e.target.value) }))} />
-                <select style={{ ...inputStyle, width: 'auto' }} value={newPlan.period} onChange={(e) => setNewPlan((n) => ({ ...n, period: e.target.value }))}>
-                  {PERIODS.map((p) => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              <div className="flex gap-2">
-                <div className="gbtn" style={{ flex: 1, justifyContent: 'center', background: 'var(--accent)', color: '#fff' }} onClick={createPlan}>
-                  {busy === 'new' ? 'Creating…' : 'Create plan'}
-                </div>
-                <div className="gbtn" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setAdding(false)}>Cancel</div>
-              </div>
-              <div style={{ fontSize: 10.5, color: 'var(--text-dim)' }}>New plans start with all Pro features unlocked and unlimited drawings. Prices are in ₹/period (monthly or yearly).</div>
-            </div>
+                </>
+              )}
+            </>
           )}
 
-          {plans.map((plan) => {
-            const edit = editFor(plan);
-            return (
-              <div key={plan.id} style={{ border: '1px solid var(--chip-border)', borderRadius: 12, padding: 10, marginBottom: 10, background: 'var(--panel-bg)' }}>
-                <div className="flex gap-2 items-center justify-between">
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <input style={{ ...inputStyle, width: 110, fontWeight: 700 }} value={edit.label} onChange={(e) => setEdit(plan.id, 'label', e.target.value)} disabled={plan.free} />
-                      {plan.free && <span style={{ fontSize: 9, background: 'rgba(var(--kid-green-rgb),0.15)', color: 'var(--kid-green)', padding: '2px 7px', borderRadius: 10, fontWeight: 700 }}>FREE</span>}
+          {tab === 'users' && (
+            <>
+              {!users.length && <div className="admin-empty">Loading users…</div>}
+              <div className="admin-list">
+                {users.map((u) => (
+                  <div key={u.id} className="admin-user">
+                    <span className="admin-avatar">{(u.nickname || u.email || '?').charAt(0).toUpperCase()}</span>
+                    <div className="admin-usertext">
+                      <div className="admin-user-name">{u.nickname || u.email}</div>
+                      <div className="admin-user-meta">
+                        <span>{u.email}</span>
+                        <span className="admin-tag">{u.drawingCount} drawings</span>
+                        <span className="admin-tag">{u.subscribed ? `Pro · ${u.plan || 'monthly'}` : 'Free'}</span>
+                        {u.role && u.role !== 'user' && (
+                          <span className={'admin-tag ' + (u.role === 'superadmin' ? 'admin-tag--super' : 'admin-tag--admin')}>
+                            {u.role}
+                          </span>
+                        )}
+                        {u.suspended && <span className="admin-tag admin-tag--off">suspended</span>}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 2 }}>id: {plan.id}{plan.free ? ' · subscribers fall back here' : ''}</div>
-                  </div>
-                  {!plan.free && (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
-                      <input type="checkbox" checked={!!edit.active} onChange={(e) => setEdit(plan.id, 'active', e.target.checked)} />
-                      Active
-                    </label>
-                  )}
-                </div>
 
-                <div className="flex gap-2 mt-2">
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 9.5, color: 'var(--text-dim)', marginBottom: 3 }}>Price (₹ / period)</div>
-                    <input style={inputStyle} type="number" min={1} value={edit.amount} onChange={(e) => setEdit(plan.id, 'amount', Number(e.target.value))} disabled={plan.free} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 9.5, color: 'var(--text-dim)', marginBottom: 3 }}>Period</div>
-                    <select style={inputStyle} value={edit.period} onChange={(e) => setEdit(plan.id, 'period', e.target.value)} disabled={plan.free}>
-                      {PERIODS.map((p) => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 9.5, color: 'var(--text-dim)', marginBottom: 3 }}>Gallery limit (−1 = ∞)</div>
-                    <input style={inputStyle} type="number" value={edit.galleryLimit} onChange={(e) => setEdit(plan.id, 'galleryLimit', Number(e.target.value))} />
-                  </div>
-                </div>
-
-                <div style={{ margin: '8px 0', borderTop: '1px solid var(--chip-border)' }} />
-                <div style={{ fontSize: 9.5, color: 'var(--text-dim)', marginBottom: 5 }}>Features (checked = unlocked on this plan)</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {catalog.map((f) => (
-                    <label key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, cursor: 'pointer' }}>
-                      <input type="checkbox" checked={!!edit.features?.[f.key]} onChange={() => toggleFeature(plan.id, f.key)} />
-                      <span>{f.label}</span>
-                    </label>
-                  ))}
-                </div>
-
-                <div className="flex gap-2 mt-3">
-                  <div className="gbtn" style={{ flex: 1, justifyContent: 'center', background: 'var(--accent)', color: '#fff' }} onClick={() => savePlan(plan)}>
-                    {busy === plan.id ? 'Saving…' : 'Save changes'}
-                  </div>
-                  {!plan.free && (
-                    <div className="gbtn" style={{ flex: 1, justifyContent: 'center', color: 'var(--kid-pink)' }} onClick={() => removePlan(plan)}>
-                      Remove plan
+                    <div className="admin-user-actions">
+                      <button type="button" className="admin-icon" title="View drawings" aria-label="View drawings" onClick={() => viewUser(u.id, u.nickname || u.email)}>
+                        <Eye size={14} />
+                      </button>
+                      {superadmin && (
+                        <select
+                          className="admin-select"
+                          value={u.role}
+                          aria-label={`Role for ${u.email}`}
+                          onChange={(e) => userAction(u.id, { role: e.target.value })}
+                        >
+                          <option value="user">user</option>
+                          <option value="admin">admin</option>
+                          <option value="superadmin">superadmin</option>
+                        </select>
+                      )}
+                      <button
+                        type="button"
+                        className={'admin-pill' + (u.suspended ? ' admin-pill--ok' : ' admin-pill--warn')}
+                        onClick={() => userAction(u.id, { suspended: !u.suspended })}
+                      >
+                        {u.suspended ? 'Reinstate' : 'Suspend'}
+                      </button>
+                      <button type="button" className="admin-pill admin-pill--danger" onClick={() => clearContent(u.id)}>
+                        Clear content
+                      </button>
                     </div>
-                  )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {tab === 'billing' && (
+            <>
+              {!billing.length && <div className="admin-empty">No payments yet.</div>}
+              <div className="admin-list">
+                {billing.map((p, i) => (
+                  <div key={p.id + i} className="admin-row">
+                    <div style={{ minWidth: 0 }}>
+                      <div className="admin-row-main">{p.nickname || p.email}</div>
+                      <div className="admin-row-sub">{p.plan || '—'} · {new Date(p.ts).toLocaleDateString()}</div>
+                    </div>
+                    <div className="admin-row-right">
+                      <span className="admin-amount">₹{(p.amount / 100).toFixed(0)}</span>
+                      {superadmin && p.userId && (
+                        <button
+                          type="button"
+                          className="admin-icon admin-icon--danger"
+                          title="Cancel subscription"
+                          aria-label="Cancel subscription"
+                          onClick={() => cancelSub(p.userId, p.nickname || p.email)}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {tab === 'content' && (
+            <>
+              {!stats && <div className="admin-empty">Loading…</div>}
+              {stats && (
+                <>
+                  <section className="admin-section">
+                    <h2 className="admin-h2">
+                      <Layers size={14} /> Groups
+                    </h2>
+                    <div className="admin-list">
+                      {(stats.groupsList || []).map((g: any) => (
+                        <div key={g.id} className="admin-row">
+                          <span className="admin-row-main">{g.emoji} {g.name}</span>
+                          <span className="admin-row-meta">{g.memberCount} members · {g.wins}W / {g.played}</span>
+                          <button type="button" className="admin-icon admin-icon--danger" title="Delete group" aria-label={`Delete group ${g.name}`} onClick={() => delGroup(g.id, g.name)}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      ))}
+                      {!(stats.groupsList || []).length && <div className="admin-empty">No groups yet.</div>}
+                    </div>
+                  </section>
+
+                  <section className="admin-section">
+                    <h2 className="admin-h2">Battles</h2>
+                    <div className="admin-list">
+                      {(stats.competitionsList || []).map((c: any) => (
+                        <div key={c.id} className="admin-row">
+                          <span className="admin-row-main">{c.prompt}</span>
+                          <span className="admin-row-meta">{c.status} · {c.votes} votes</span>
+                          <button type="button" className="admin-icon admin-icon--danger" title="Delete battle" aria-label="Delete battle" onClick={() => delCompetition(c.id)}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      ))}
+                      {!(stats.competitionsList || []).length && <div className="admin-empty">No battles yet.</div>}
+                    </div>
+                  </section>
+                </>
+              )}
+            </>
+          )}
+
+          {tab === 'plans' && superadmin && (
+            <>
+              <div className="admin-sectionhead">
+                <div>
+                  <h2 className="admin-h2">Plans &amp; features</h2>
+                  <p className="admin-hint">Feature checkboxes gate the app live.</p>
                 </div>
+                <button type="button" className="admin-btn admin-btn--ghost" onClick={() => { setAdding((a) => !a); setError(''); }}>
+                  <Plus size={14} /> {adding ? 'Close' : 'Add plan'}
+                </button>
               </div>
-            );
-          })}
-        </div>
-      )}
 
-      {userDetail && (
-        <div style={{ marginTop: 10, border: '1px solid var(--chip-border)', borderRadius: 12, padding: 10, background: 'var(--panel-bg)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 700 }}>Drawings by {userDetail.nickname}</span>
-            <div className="gmini" onClick={() => setUserDetail(null)}><X size={13} /></div>
-          </div>
-          <div className="flex gap-2 flex-wrap" style={{ maxHeight: 240, overflowY: 'auto' }}>
-            {Object.entries(userDetail.drawings).map(([name, strokes]) => (
-              <div key={name} style={{ textAlign: 'center' }}>
-                <MiniCanvas strokes={strokes || []} />
-                <div style={{ fontSize: 9.5, color: 'var(--text-dim)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+              {adding && (
+                <div className="admin-formcard">
+                  <label className="admin-field">
+                    <span>Plan label</span>
+                    <input style={inputStyle} placeholder="e.g. Quarterly" value={newPlan.label} onChange={(e) => setNewPlan((n) => ({ ...n, label: e.target.value }))} />
+                  </label>
+                  <div className="admin-fieldrow">
+                    <label className="admin-field">
+                      <span>₹ price / period</span>
+                      <input style={inputStyle} type="number" min={1} placeholder="₹ price" value={newPlan.amount} onChange={(e) => setNewPlan((n) => ({ ...n, amount: Number(e.target.value) }))} />
+                    </label>
+                    <label className="admin-field">
+                      <span>Period</span>
+                      <select style={inputStyle} value={newPlan.period} onChange={(e) => setNewPlan((n) => ({ ...n, period: e.target.value }))}>
+                        {PERIODS.map((p) => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="admin-fieldrow">
+                    <button type="button" className="admin-btn admin-btn--primary" onClick={createPlan} disabled={busy === 'new'}>
+                      {busy === 'new' ? 'Creating…' : 'Create plan'}
+                    </button>
+                    <button type="button" className="admin-btn admin-btn--ghost" onClick={() => setAdding(false)}>Cancel</button>
+                  </div>
+                  <p className="admin-hint">
+                    New plans start with all Pro features unlocked and unlimited drawings. Prices are in ₹/period.
+                  </p>
+                </div>
+              )}
+
+              <div className="admin-plans">
+                {plans.map((plan) => {
+                  const edit = editFor(plan);
+                  const dirty = !!edits[plan.id];
+                  return (
+                    <section key={plan.id} className={'admin-plan' + (dirty ? ' is-dirty' : '')}>
+                      <div className="admin-plan-head">
+                        <div style={{ minWidth: 0 }}>
+                          <div className="admin-plan-title">
+                            <span className="admin-plan-namewrap">
+                              <input
+                                style={{ ...inputStyle, fontWeight: 700 }}
+                              aria-label={`Label for plan ${plan.id}`}
+                              value={edit.label}
+                              onChange={(e) => setEdit(plan.id, 'label', e.target.value)}
+                                disabled={plan.free}
+                              />
+                            </span>
+                            {plan.free && <span className="admin-tag admin-tag--admin">Free</span>}
+                            {dirty && <span className="admin-tag admin-tag--warn">Unsaved</span>}
+                          </div>
+                          <p className="admin-hint">
+                            id: {plan.id}{plan.free ? ' · subscribers fall back here' : ''}
+                          </p>
+                        </div>
+                        {!plan.free && (
+                          <label className="admin-switch">
+                            <input type="checkbox" checked={!!edit.active} onChange={(e) => setEdit(plan.id, 'active', e.target.checked)} />
+                            <span>Active</span>
+                          </label>
+                        )}
+                      </div>
+
+                      <div className="admin-fieldrow">
+                        <label className="admin-field">
+                          <span>Price (₹ / period)</span>
+                          <input style={inputStyle} type="number" min={1} aria-label={`Price for plan ${plan.id}`} value={edit.amount} onChange={(e) => setEdit(plan.id, 'amount', Number(e.target.value))} disabled={plan.free} />
+                        </label>
+                        <label className="admin-field">
+                          <span>Period</span>
+                          <select style={inputStyle} aria-label={`Period for plan ${plan.id}`} value={edit.period} onChange={(e) => setEdit(plan.id, 'period', e.target.value)} disabled={plan.free}>
+                            {PERIODS.map((p) => <option key={p} value={p}>{p}</option>)}
+                          </select>
+                        </label>
+                        <label className="admin-field">
+                          <span>Gallery limit (−1 = ∞</span>
+                          <input style={inputStyle} type="number" aria-label={`Gallery limit for plan ${plan.id}`} value={edit.galleryLimit} onChange={(e) => setEdit(plan.id, 'galleryLimit', Number(e.target.value))} />
+                        </label>
+                      </div>
+
+                      <div className="admin-divider" />
+                      <p className="admin-hint" style={{ marginBottom: 8 }}>Features — checked means unlocked on this plan</p>
+                      <div className="admin-features">
+                        {catalog.map((f) => {
+                          const on = !!edit.features?.[f.key];
+                          return (
+                            <label key={f.key} className={'admin-chip' + (on ? ' is-on' : '')}>
+                              <input type="checkbox" checked={on} onChange={() => toggleFeature(plan.id, f.key)} />
+                              {f.label}
+                            </label>
+                          );
+                        })}
+                      </div>
+
+                      <div className="admin-fieldrow admin-plan-actions">
+                        <button type="button" className="admin-btn admin-btn--primary" onClick={() => savePlan(plan)} disabled={busy === plan.id}>
+                          {busy === plan.id ? 'Saving…' : 'Save changes'}
+                        </button>
+                        {!plan.free && (
+                          <button type="button" className="admin-btn admin-btn--danger" onClick={() => removePlan(plan)}>
+                            Remove plan
+                          </button>
+                        )}
+                      </div>
+                    </section>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </>
+          )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10.5, color: 'var(--text-dim)', marginTop: 14 }}>
-        <Check size={12} /> Changes to plans apply to new sessions immediately; existing subscribers keep their entitlements until the period ends.
+          {userDetail && (
+            <section className="admin-section">
+              <div className="admin-sectionhead">
+                <h2 className="admin-h2">Drawings by {userDetail.nickname}</h2>
+                <button type="button" className="admin-icon" title="Close" aria-label="Close drawings" onClick={() => setUserDetail(null)}>
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="admin-gallery">
+                {Object.entries(userDetail.drawings).map(([name, strokes]) => (
+                  <div key={name} className="admin-shot">
+                    <MiniCanvas strokes={strokes || []} />
+                    <span className="admin-shot-name">{name}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </main>
+
+        <p className="admin-foot">
+          <Check size={12} />
+          Changes to plans apply to new sessions immediately; existing subscribers keep their entitlements until the period ends.
+        </p>
       </div>
     </div>
   );
