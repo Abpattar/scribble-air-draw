@@ -274,7 +274,7 @@ export default function AdminPage({ superadmin, onBack, onChanged }: Props) {
             </div>
           </div>
         </div>
-        <div style={{ fontSize: 10, fontWeight: 700, background: superadmin ? 'rgba(255,107,74,0.15)' : 'rgba(47,155,255,0.15)', color: superadmin ? 'var(--kid-pink)' : 'var(--kid-blue)', padding: '4px 10px', borderRadius: 20, flexShrink: 0 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, background: superadmin ? 'rgba(var(--clay-rgb),0.15)' : 'rgba(var(--kid-blue-rgb),0.15)', color: superadmin ? 'var(--kid-pink)' : 'var(--kid-blue)', padding: '4px 10px', borderRadius: 20, flexShrink: 0 }}>
           {superadmin ? 'SUPERADMIN' : 'ADMIN'}
         </div>
       </div>
@@ -289,7 +289,7 @@ export default function AdminPage({ superadmin, onBack, onChanged }: Props) {
             ...(superadmin ? ([['plans', 'Plans', Settings]] as const) : []),
           ] as const
         ).map(([t, label, Icon]) => (
-          <div key={t} className="gbtn" style={{ width: 'auto', padding: '7px 12px', color: tab === t ? 'var(--text)' : undefined, background: tab === t ? 'rgba(47,155,255,0.15)' : undefined, borderColor: tab === t ? 'rgba(47,155,255,0.4)' : undefined }} onClick={() => setTab(t)}>
+          <div key={t} className="gbtn" style={{ width: 'auto', padding: '7px 12px', color: tab === t ? 'var(--text)' : undefined, background: tab === t ? 'rgba(var(--kid-blue-rgb),0.15)' : undefined, borderColor: tab === t ? 'rgba(var(--kid-blue-rgb),0.4)' : undefined }} onClick={() => setTab(t)}>
             <Icon size={13} /> {label}
           </div>
         ))}
@@ -444,7 +444,7 @@ export default function AdminPage({ superadmin, onBack, onChanged }: Props) {
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <input style={{ ...inputStyle, width: 110, fontWeight: 700 }} value={edit.label} onChange={(e) => setEdit(plan.id, 'label', e.target.value)} disabled={plan.free} />
-                      {plan.free && <span style={{ fontSize: 9, background: 'rgba(22,196,127,0.15)', color: 'var(--kid-green)', padding: '2px 7px', borderRadius: 10, fontWeight: 700 }}>FREE</span>}
+                      {plan.free && <span style={{ fontSize: 9, background: 'rgba(var(--kid-green-rgb),0.15)', color: 'var(--kid-green)', padding: '2px 7px', borderRadius: 10, fontWeight: 700 }}>FREE</span>}
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 2 }}>id: {plan.id}{plan.free ? ' · subscribers fall back here' : ''}</div>
                   </div>

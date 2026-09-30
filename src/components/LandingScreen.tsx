@@ -1,115 +1,190 @@
 import { motion } from 'framer-motion';
-import { Hand, Cloud, Sticker, Play, History, Palette, Check, Minus } from 'lucide-react';
-import AnimatedShaderBackground from './Animatedshaderbackground';
+import {
+  Camera,
+  Hand,
+  Cloud,
+  Sticker,
+  Play,
+  History,
+  Palette,
+  Download,
+  Layers,
+  Check,
+  Minus,
+  ArrowRight,
+  Sparkles,
+} from 'lucide-react';
 import { DEFAULT_FREE_PLAN, DEFAULT_PLAN_PAYLOAD, FEATURE_CATALOG, galleryLabel } from '../lib/plans';
 
 interface Props {
   onGetStarted: () => void;
 }
 
-const STEPS = [
-  { emoji: '👉', title: 'Point to draw', text: 'Point your finger at the screen and trace your drawing in the air.' },
-  { emoji: '✌️', title: 'Peace sign to move', text: 'Hold up two fingers to pan and move your drawing around.' },
-  { emoji: '🖼️', title: 'Save & revisit', text: 'Every drawing is saved to your account so you always come back to it.' },
+/* The flow below mirrors what the studio actually does, in order. */
+const FLOW = [
+  {
+    Icon: Camera,
+    title: 'Your camera becomes the canvas',
+    text: 'Point your webcam at yourself and the live feed fills the whole screen. That is your drawing surface — nothing to load, nothing to import.',
+  },
+  {
+    Icon: Hand,
+    title: 'Hand tracking finds your fingertip',
+    text: 'The camera watches one finger. Wherever it points, the brush lands — so a wave of your hand becomes a line of ink.',
+  },
+  {
+    Icon: Sparkles,
+    title: 'Gestures switch modes as you go',
+    text: 'Point to draw, raise two fingers to move the picture, open your palm to fill a shape. No clicking, no menus in the way.',
+  },
 ];
 
 const FEATURES = [
-  { Icon: Hand, title: 'Draw in the air', text: 'No mouse, no stylus — just your hand and your imagination.', bg: 'var(--kid-blue)' },
-  { Icon: Cloud, title: 'Auto-save to you', text: 'Log in anywhere and all your drawings are right where you left them.', bg: 'var(--kid-green)' },
-  { Icon: Sticker, title: 'Trace templates', text: 'Pick an outline — planets, fruit, cartoons — and colour it in by tracing.', bg: 'var(--kid-pink)' },
-  { Icon: Play, title: 'Replay your art', text: 'Watch your masterpiece replay stroke by stroke, ready to share.', bg: 'var(--accent)' },
-  { Icon: History, title: 'Version history', text: 'Saved checkpoints let you hop back to any earlier version.', bg: 'var(--accent2)' },
-  { Icon: Palette, title: 'Bright & kid-friendly', text: 'Big buttons, fun colours, one-tap controls — no confusing menus.', bg: 'var(--kid-yellow)' },
+  { Icon: Hand, title: 'Draw in the air', text: 'Pen, line, circle, rectangle, fill and eraser — all driven by your hand, right in front of the webcam.' },
+  { Icon: Sticker, title: 'Trace a template', text: 'Pick an outline, trace over it in the air and colour it in. The drawing is yours from the first stroke.' },
+  { Icon: Cloud, title: 'Saved to your account', text: 'Every drawing is written to your profile as you go. Sign in on any device and your gallery is where you left it.' },
+  { Icon: History, title: 'Version history', text: 'Checkpoints are kept while you work, so an earlier version is always one tap away.' },
+  { Icon: Play, title: 'Replay and record', text: 'Watch your strokes redraw themselves, or record the whole session as a video.' },
+  { Icon: Download, title: 'Export how you like', text: 'Save a PNG of just your lines on a transparent background, or of the whole canvas.' },
 ];
 
-const fadeUp = {
-  initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0 },
-};
+const fadeUp = { initial: { opacity: 0, y: 18 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, margin: '-80px' } };
+
+/** A calm, static illustration of the studio surface — no fake data, no live canvas. */
+function StageVisual() {
+  return (
+    <div className="lp-stage">
+      <div className="lp-stage-frame">
+        <div className="lp-stage-grid" />
+        <svg className="lp-stage-stroke" viewBox="0 0 400 300" fill="none" aria-hidden="true">
+          <path
+            d="M78 214c30-18 46-52 62-84s34-54 62-46 40 40 62 52 44 8 58-10"
+            stroke="#246a56"
+            strokeWidth="6"
+            strokeLinecap="round"
+          />
+          <path
+            d="M96 246c40-14 86-22 132-18s76 10 100 2"
+            stroke="#e29054"
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M132 92c22-14 48-16 68-6"
+            stroke="#3a967a"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="lp-cursor" style={{ left: '62%', top: '47%' }} />
+
+        <div className="lp-stage-badge">
+          <span className="lp-stage-dot" />
+          Drawing
+        </div>
+        <div className="lp-stage-hud lp-stage-hud--top">Point with one finger to draw</div>
+        <div className="lp-stage-hud lp-stage-hud--tool">
+          <span className="lp-stage-chip lp-stage-chip--on" />
+          <Palette size={14} />
+        </div>
+        <div className="lp-stage-hud lp-stage-hud--color">
+          <span className="lp-stage-chip" style={{ background: '#3a967a' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function LandingScreen({ onGetStarted }: Props) {
   return (
-    <div className="absolute inset-0 z-[70] overflow-y-auto bg-[var(--bg)]">
-      {/* ── hero ── */}
-      <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden py-14">
-        <AnimatedShaderBackground className="opacity-70" />
-        <div className="pointer-events-none absolute inset-0 bg-white/25" />
+    <div className="lp-shell">
+      {/* ── nav ── */}
+      <header className="lp-nav">
+        <div className="lp-brand">
+          <span className="lp-mark">
+            <Hand size={17} strokeWidth={2.2} />
+          </span>
+          Scribble Air Draw
+        </div>
+        <button type="button" className="lp-btn lp-btn-primary lp-btn-sm" onClick={onGetStarted}>
+          Get Started
+          <ArrowRight size={15} />
+        </button>
+      </header>
 
-        <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-2xl">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.7, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 14 }}
-            className="w-24 h-24 rounded-[26px] flex items-center justify-center text-5xl mb-8"
-            style={{ background: 'var(--kid-blue)', boxShadow: '0 14px 30px -10px rgba(var(--kid-blue-rgb),0.5)' }}
-          >
-            ✏️
+      {/* ── hero ── */}
+      <section className="lp-wrap" style={{ paddingTop: 72, paddingBottom: 40 }}>
+        <div style={{ display: 'grid', gap: 56, alignItems: 'center', gridTemplateColumns: 'repeat(auto-fit, minmax(min(330px, 100%), 1fr))' }}>
+          <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}>
+            <span className="lp-eyebrow">Air drawing with your webcam</span>
+            <h1 className="lp-h1" style={{ marginTop: 18 }}>
+              Draw with your hands.
+              <br />
+              <span className="lp-accent">Nothing else.</span>
+            </h1>
+            <p className="lp-lead" style={{ marginTop: 22, maxWidth: '30rem' }}>
+              Your webcam is the canvas and your fingertip is the brush. Wave your hand and the
+              lines appear — no mouse, no stylus, no mess to clean up.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 34 }}>
+              <button type="button" className="lp-btn lp-btn-primary" onClick={onGetStarted}>
+                Get Started
+                <ArrowRight size={16} />
+              </button>
+              <a className="lp-btn lp-btn-ghost" href="#how">
+                See how it works
+              </a>
+            </div>
+            <p className="lp-muted" style={{ marginTop: 20 }}>
+              Free to start. Works on any laptop with a webcam.
+            </p>
           </motion.div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15, duration: 0.5 }}
-            className="font-display text-[clamp(2.4rem,6vw,3.6rem)] leading-tight text-[#1c2440]"
-          >
-            Scribble <span style={{ color: 'var(--accent)' }}>Air</span> Draw
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="mt-5 text-[16px] leading-relaxed text-[#1c2440]/60 max-w-xl"
-          >
-            Wave your hand in the air and watch your drawing come to life — no crayons, no mess,
-            just your webcam and your imagination.
-          </motion.p>
-
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 26 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45, duration: 0.5 }}
-            className="mt-9 w-full max-w-lg"
+            transition={{ delay: 0.12, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           >
-            <button className="landing-cta" onClick={onGetStarted}>
-              Get Started 🚀
-            </button>
+            <StageVisual />
           </motion.div>
         </div>
       </section>
 
       {/* ── how it works ── */}
-      <section className="px-6 py-20 bg-[var(--bg)]">
-        <div className="max-w-5xl mx-auto">
-          <motion.h2
-            {...fadeUp}
-            transition={{ duration: 0.5 }}
-            className="text-center font-display text-3xl text-[#1c2440]"
-          >
-            How it works
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.15, duration: 0.5 }}
-            className="text-center text-[13.5px] text-[#1c2440]/55 mt-2"
-          >
-            Three simple hand signs — that's it.
-          </motion.p>
+      <section className="lp-wrap lp-section" id="how">
+        <div style={{ display: 'grid', gap: 52, gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', alignItems: 'start' }}>
+          <div>
+            <motion.span className="lp-eyebrow" {...fadeUp} transition={{ duration: 0.45 }}>
+              Camera → Hand → Draw
+            </motion.span>
+            <motion.h2 className="lp-h2" style={{ marginTop: 16 }} {...fadeUp} transition={{ duration: 0.5 }}>
+              Three steps, and you are already drawing.
+            </motion.h2>
+            <motion.p className="lp-body" style={{ marginTop: 16, maxWidth: '26rem' }} {...fadeUp} transition={{ delay: 0.06, duration: 0.5 }}>
+              Nothing to install and no tutorial to sit through. Grant camera access, hold your
+              hand up, and the studio takes over from there.
+            </motion.p>
+          </div>
 
-          <div className="grid md:grid-cols-3 gap-6 mt-12">
-            {STEPS.map((s, i) => (
+          <div className="lp-flow">
+            {FLOW.map((f, i) => (
               <motion.div
-                key={s.title}
+                key={f.title}
+                className="lp-flow-step"
                 initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.12, duration: 0.5 }}
-                className="bg-white rounded-3xl border border-[rgba(23,32,70,0.1)] p-8 flex flex-col items-center text-center"
-                style={{ boxShadow: '0 18px 40px -24px rgba(23,32,70,0.35)' }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ delay: i * 0.08, duration: 0.45 }}
               >
-                <div className="text-5xl mb-5 select-none">{s.emoji}</div>
-                <div className="text-[15px] font-semibold text-[#1c2440]">{s.title}</div>
-                <div className="text-[13px] text-[#1c2440]/55 mt-2 leading-relaxed">{s.text}</div>
+                <span className="lp-flow-num">
+                  <f.Icon size={18} strokeWidth={2} />
+                </span>
+                <div>
+                  <div className="lp-h3">{f.title}</div>
+                  <p className="lp-body" style={{ marginTop: 6 }}>
+                    {f.text}
+                  </p>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -117,170 +192,223 @@ export default function LandingScreen({ onGetStarted }: Props) {
       </section>
 
       {/* ── features ── */}
-      <section className="px-6 pb-20 bg-[var(--bg)]">
-        <div className="max-w-5xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center font-display text-3xl text-[#1c2440]"
-          >
-            Made for little artists
+      <section className="lp-wrap lp-section" id="features">
+        <div style={{ maxWidth: '38rem' }}>
+          <motion.span className="lp-eyebrow" {...fadeUp} transition={{ duration: 0.45 }}>
+            Everything in the studio
+          </motion.span>
+          <motion.h2 className="lp-h2" style={{ marginTop: 16 }} {...fadeUp} transition={{ duration: 0.5 }}>
+            A full drawing desk, minus the desk.
           </motion.h2>
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.15, duration: 0.5 }}
-            className="text-center text-[13.5px] text-[#1c2440]/55 mt-2"
-          >
-            Everything is big, bright and easy to use.
-          </motion.p>
+        </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
-            {FEATURES.map((f, i) => (
-              <motion.div
-                key={f.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: (i % 3) * 0.1, duration: 0.5 }}
-                className="bg-white rounded-3xl border border-[rgba(23,32,70,0.1)] p-8"
-                style={{ boxShadow: '0 18px 40px -24px rgba(23,32,70,0.35)' }}
-              >
-                <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5 text-white"
-                  style={{ background: f.bg }}
-                >
-                  <f.Icon size={22} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', columnGap: 56, marginTop: 34 }}>
+          <div>
+            {FEATURES.slice(0, 3).map((f) => (
+              <motion.div key={f.title} className="lp-feature" {...fadeUp} transition={{ duration: 0.45 }}>
+                <span className="lp-feature-icon">
+                  <f.Icon size={19} strokeWidth={2} />
+                </span>
+                <div>
+                  <div className="lp-h3">{f.title}</div>
+                  <p className="lp-body" style={{ marginTop: 5 }}>
+                    {f.text}
+                  </p>
                 </div>
-                <div className="text-[15px] font-semibold text-[#1c2440]">{f.title}</div>
-                <div className="text-[13px] text-[#1c2440]/55 mt-2 leading-relaxed">{f.text}</div>
+              </motion.div>
+            ))}
+          </div>
+          <div>
+            {FEATURES.slice(3).map((f) => (
+              <motion.div key={f.title} className="lp-feature" {...fadeUp} transition={{ duration: 0.45 }}>
+                <span className="lp-feature-icon">
+                  <f.Icon size={19} strokeWidth={2} />
+                </span>
+                <div>
+                  <div className="lp-h3">{f.title}</div>
+                  <p className="lp-body" style={{ marginTop: 5 }}>
+                    {f.text}
+                  </p>
+                </div>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── pricing / plans ── */}
-      <section className="px-6 pb-20 bg-[var(--bg)]">
-        <div className="max-w-5xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center font-display text-3xl text-[#1c2440]"
-          >
-            Simple plans, no surprises
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.15, duration: 0.5 }}
-            className="text-center text-[13.5px] text-[#1c2440]/55 mt-2"
-          >
-            Start free on the Free plan — upgrade any time to unlock every feature.
-          </motion.p>
+      {/* ── product experience ── */}
+      <section className="lp-wrap lp-section">
+        <motion.div
+          className="lp-band"
+          initial={{ opacity: 0, y: 26 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.55 }}
+          style={{ textAlign: 'left' }}
+        >
+          <div style={{ display: 'grid', gap: 44, gridTemplateColumns: 'repeat(auto-fit, minmax(min(290px, 100%), 1fr))', alignItems: 'center' }}>
+            <div>
+              <span className="lp-eyebrow" style={{ color: '#f0d8c0' }}>
+                The studio
+              </span>
+              <h2 className="lp-h2" style={{ marginTop: 16, fontSize: 'clamp(1.7rem, 3.2vw, 2.4rem)' }}>
+                The camera feed is the page.
+              </h2>
+              <p style={{ marginTop: 16, fontSize: '1rem', lineHeight: 1.7, color: 'rgba(241,238,232,0.76)' }}>
+                You are never looking at a small preview in the corner. The live camera fills the
+                whole screen and your drawing lands on top of it, so what you are looking at is
+                what you are drawing on. The tools float above the edge of the frame and stay out
+                of the way of your hands.
+              </p>
+            </div>
+            <div style={{ display: 'grid', gap: 14 }}>
+              {[
+                { Icon: Layers, title: 'Your own background', text: 'Swap the camera for a blank white canvas, or import an image to draw over.' },
+                { Icon: Cloud, title: 'Nothing is lost', text: 'Strokes are stored as you draw them, not when you press save.' },
+                { Icon: History, title: 'Back out of mistakes', text: 'Undo a single stroke, clear the page, or return to an earlier checkpoint.' },
+              ].map((f) => (
+                <div key={f.title} className="auth-fact" style={{ color: 'rgba(241,238,232,0.8)' }}>
+                  <span
+                    className="auth-fact-icon"
+                    style={{ color: '#f0d8c0', background: 'rgba(240,216,192,0.14)', borderColor: 'rgba(240,216,192,0.22)' }}
+                  >
+                    <f.Icon size={15} strokeWidth={2} />
+                  </span>
+                  <div>
+                    <span style={{ color: '#f6f4ef', fontWeight: 600 }}>{f.title}. </span>
+                    {f.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      </section>
 
-          <div className="grid md:grid-cols-3 gap-5 mt-12 items-stretch">
-            {[DEFAULT_FREE_PLAN, ...DEFAULT_PLAN_PAYLOAD.plans].map((plan, i) => (
+      {/* ── plans ── */}
+      <section className="lp-wrap lp-section" id="plans">
+        <div style={{ maxWidth: '36rem', margin: '0 auto', textAlign: 'center' }}>
+          <motion.span className="lp-eyebrow" {...fadeUp} transition={{ duration: 0.45 }}>
+            Simple plans
+          </motion.span>
+          <motion.h2 className="lp-h2" style={{ marginTop: 16 }} {...fadeUp} transition={{ duration: 0.5 }}>
+            Start free. Upgrade only if you want more.
+          </motion.h2>
+          <motion.p className="lp-body" style={{ marginTop: 14 }} {...fadeUp} transition={{ delay: 0.06, duration: 0.5 }}>
+            Drawing in the air is always free. Pro adds templates, background images, transparent
+            export, replay and recording.
+          </motion.p>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gap: 18,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(268px, 100%), 1fr))',
+            alignItems: 'stretch',
+            marginTop: 40,
+          }}
+        >
+          {[DEFAULT_FREE_PLAN, ...DEFAULT_PLAN_PAYLOAD.plans].map((plan, i) => {
+            // one dark card only — it anchors the section without turning the
+            // page green, and it is the plan we actually want people to take
+            const featured = plan.id === 'yearly';
+            return (
               <motion.div
                 key={plan.id}
-                initial={{ opacity: 0, y: 20 }}
+                className={'lp-plan' + (featured ? ' lp-plan--pro' : '')}
+                initial={{ opacity: 0, y: 22 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.5 }}
-                className="bg-white rounded-3xl border border-[rgba(23,32,70,0.1)] p-7 flex flex-col"
-                style={{ boxShadow: '0 18px 40px -24px rgba(23,32,70,0.35)' }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ delay: i * 0.08, duration: 0.45 }}
               >
-                <div className="flex items-center justify-between">
-                  <div className="text-[15px] font-semibold text-[#1c2440]">{plan.label}</div>
-                  {plan.free && (
-                    <span className="text-[9px] px-2 py-0.5 rounded-full text-white font-bold" style={{ background: 'var(--kid-green)' }}>
-                      FREE
-                    </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <span className="lp-plan-name">{plan.label}</span>
+                  {plan.free ? (
+                    <span className="lp-plan-tag">FREE</span>
+                  ) : (
+                    featured && <span className="lp-plan-tag">BEST VALUE</span>
                   )}
                 </div>
 
-                <div className="mt-3 mb-1">
-                  <span className="text-[30px] font-extrabold text-[#1c2440]">₹{plan.amount}</span>
-                  <span className="text-[12px] text-[#1c2440]/50 ml-1">/ {plan.id === 'monthly' ? 'month' : 'year'}</span>
+                <div className="lp-plan-price">
+                  ₹{plan.amount}
+                  <small>/ {plan.id === 'monthly' ? 'month' : plan.id === 'yearly' ? 'year' : 'month'}</small>
                 </div>
-                <div className="text-[11.5px] text-[#1c2440]/55 mb-4">{plan.description}</div>
+                <div className="lp-plan-desc">{plan.description}</div>
 
-                <div className="flex flex-col gap-2 mb-5">
+                <div style={{ display: 'grid', gap: 9, margin: '18px 0 26px' }}>
                   {FEATURE_CATALOG.map((f) => {
                     const on = plan.features[f.key];
                     return (
-                      <div key={f.key} className="flex items-center gap-2.5 text-[12.5px]" style={{ color: on ? '#1c2440' : '#1c244055' }}>
+                      <div key={f.key} className={'lp-plan-feat' + (on ? '' : ' lp-plan-feat--off')}>
                         {on ? (
-                          <Check size={15} style={{ color: 'var(--kid-green)', flexShrink: 0 }} />
+                          <Check size={15} style={{ color: featured ? '#f0d8c0' : 'var(--emerald)' }} />
                         ) : (
-                          <Minus size={15} style={{ color: '#1c244022', flexShrink: 0 }} />
+                          <Minus size={15} style={{ opacity: 0.5 }} />
                         )}
                         <span style={{ textDecoration: on ? 'none' : 'line-through' }}>{f.label}</span>
                       </div>
                     );
                   })}
-                  <div className="flex items-center gap-2.5 text-[12.5px]" style={{ color: plan.galleryLimit === -1 ? '#1c2440' : '#1c244055' }}>
+                  <div className={'lp-plan-feat' + (plan.galleryLimit === -1 ? '' : ' lp-plan-feat--off')}>
                     {plan.galleryLimit === -1 ? (
-                      <Check size={15} style={{ color: 'var(--kid-green)', flexShrink: 0 }} />
+                      <Check size={15} style={{ color: featured ? '#f0d8c0' : 'var(--emerald)' }} />
                     ) : (
-                      <Minus size={15} style={{ color: '#1c244022', flexShrink: 0 }} />
+                      <Minus size={15} style={{ opacity: 0.5 }} />
                     )}
-                    <span style={{ textDecoration: plan.galleryLimit === -1 ? 'none' : 'line-through' }}>{galleryLabel(plan.galleryLimit)}</span>
+                    <span style={{ textDecoration: plan.galleryLimit === -1 ? 'none' : 'line-through' }}>
+                      {galleryLabel(plan.galleryLimit)}
+                    </span>
                   </div>
                 </div>
 
                 <button
-                  className="mt-auto py-3 rounded-2xl text-[13.5px] font-semibold transition-transform hover:scale-[1.02] active:scale-[0.98]"
-                  style={{
-                    background: plan.free ? 'rgba(47,155,255,0.14)' : 'var(--accent)',
-                    color: plan.free ? '#2f9bff' : '#fff',
-                    border: plan.free ? '1.5px solid rgba(47,155,255,0.5)' : '1.5px solid transparent',
-                  }}
+                  type="button"
+                  className={featured ? 'lp-btn lp-btn-warm' : plan.free ? 'lp-btn lp-btn-ghost' : 'lp-btn lp-btn-primary'}
+                  style={{ marginTop: 'auto' }}
                   onClick={onGetStarted}
                 >
                   {plan.free ? 'Start free' : 'Get Pro'}
                 </button>
               </motion.div>
-            ))}
-          </div>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center text-[11.5px] text-[#1c2440]/45 mt-6"
-          >
-            Cancel anytime · Paid securely via Razorpay · Plans rights-manageable by the admin.
-          </motion.p>
+            );
+          })}
         </div>
+
+        <motion.p className="lp-muted" style={{ textAlign: 'center', marginTop: 26 }} {...fadeUp} transition={{ duration: 0.45 }}>
+          Cancel anytime · Paid securely via Razorpay · Plans rights-manageable by the admin.
+        </motion.p>
       </section>
 
-      {/* ── CTA banner ── */}
-      <section className="px-6 pb-20 bg-[var(--bg)]">
+      {/* ── final CTA ── */}
+      <section className="lp-wrap lp-section lp-section--tight">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          className="lp-band"
+          initial={{ opacity: 0, y: 26 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="max-w-5xl mx-auto rounded-[32px] px-8 py-16 text-center"
-          style={{ background: 'var(--kid-green)', boxShadow: '0 20px 50px -20px rgba(var(--kid-green-rgb),0.55)' }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.55 }}
         >
-          <div className="font-display text-3xl text-white">Ready to start drawing?</div>
-          <div className="text-[14px] text-white/85 mt-3 max-w-md mx-auto leading-relaxed">
-            Grab your webcam and get drawing — it's free, safe and mess-free fun for kids.
-          </div>
-          <button className="landing-cta on-dark mt-8" onClick={onGetStarted}>
-            Get Started 🚀
+          <h2 className="lp-h2" style={{ fontSize: 'clamp(1.8rem, 3.4vw, 2.6rem)' }}>
+            Ready to draw in the air?
+          </h2>
+          <p className="lp-lead" style={{ marginTop: 16, margin: '16px auto 0', maxWidth: '30rem', color: 'rgba(241,238,232,0.78)' }}>
+            Allow camera access, hold up one finger, and the first line is a second away.
+          </p>
+          <button type="button" className="lp-btn lp-btn-warm" style={{ marginTop: 32 }} onClick={onGetStarted}>
+            Get Started
+            <ArrowRight size={16} />
           </button>
         </motion.div>
       </section>
+
+      <footer className="lp-wrap">
+        <div className="lp-foot">
+          <span>Scribble Air Draw</span>
+          <span>Draw in the air with nothing but a webcam.</span>
+        </div>
+      </footer>
     </div>
   );
 }

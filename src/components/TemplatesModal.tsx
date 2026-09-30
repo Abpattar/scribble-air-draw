@@ -57,9 +57,9 @@ export default function TemplatesModal({ onClose, subscribed, plan, subscribedUn
                     width: 'auto',
                     padding: '6px 12px',
                     cursor: 'pointer',
-                    background: cat === activeCat ? 'rgba(47,155,255,0.18)' : undefined,
+                    background: cat === activeCat ? 'rgba(var(--kid-blue-rgb),0.18)' : undefined,
                     color: cat === activeCat ? 'var(--text)' : undefined,
-                    borderColor: cat === activeCat ? 'rgba(47,155,255,0.5)' : undefined,
+                    borderColor: cat === activeCat ? 'rgba(var(--kid-blue-rgb),0.5)' : undefined,
                   }}
                 >
                   {cat}
@@ -72,7 +72,7 @@ export default function TemplatesModal({ onClose, subscribed, plan, subscribedUn
                 <div
                   key={tpl.url}
                   onClick={() => handlePick(tpl)}
-                  className="relative rounded-lg overflow-hidden border border-[rgba(23,32,70,0.12)] cursor-pointer bg-white aspect-square"
+                  className="relative rounded-lg overflow-hidden border border-[rgba(var(--forest-rgb),0.12)] cursor-pointer bg-white aspect-square"
                 >
                   <img
                     src={tpl.url}
@@ -81,21 +81,21 @@ export default function TemplatesModal({ onClose, subscribed, plan, subscribedUn
                     style={{ filter: locked || tpl.free ? 'none' : 'blur(3px) brightness(0.85)' }}
                   />
                   {locked && !tpl.free && (
-                    <div className="absolute inset-0 flex items-center justify-center text-[#1c2440]/60">
+                    <div className="absolute inset-0 flex items-center justify-center text-[var(--forest)]/60">
                       <Lock size={22} />
                     </div>
                   )}
                   {tpl.free && locked && (
-                    <div className="absolute top-1 left-1 text-[8px] px-1.5 py-0.5 rounded bg-[#16c47f] text-white font-semibold">
+                    <div className="absolute top-1 left-1 text-[8px] px-1.5 py-0.5 rounded bg-[var(--kid-green)] text-white font-semibold">
                       FREE
                     </div>
                   )}
                   {loadingUrl === tpl.url && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/70 text-[10px] text-[#1c2440]">
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/70 text-[10px] text-[var(--forest)]">
                       Loading…
                     </div>
                   )}
-                  <div className="absolute bottom-0 inset-x-0 text-[9px] text-center py-0.5 bg-white/85 text-[#1c2440]/75 truncate px-1">
+                  <div className="absolute bottom-0 inset-x-0 text-[9px] text-center py-0.5 bg-white/85 text-[var(--forest)]/75 truncate px-1">
                     {tpl.name}
                   </div>
                 </div>
@@ -105,9 +105,9 @@ export default function TemplatesModal({ onClose, subscribed, plan, subscribedUn
         )}
 
         {locked && (
-          <div className="mt-3 p-3 rounded-xl border border-[rgba(47,155,255,0.4)] bg-[rgba(47,155,255,0.08)] text-center">
-            <div className="text-[12.5px] text-[#1c2440] mb-1 font-semibold">Unlock the trace library</div>
-            <div className="text-[11px] text-[#1c2440]/55 mb-2.5 leading-relaxed">
+          <div className="mt-3 p-3 rounded-xl border border-[rgba(var(--kid-blue-rgb),0.4)] bg-[rgba(var(--kid-blue-rgb),0.08)] text-center">
+            <div className="text-[12.5px] text-[var(--forest)] mb-1 font-semibold">Unlock the trace library</div>
+            <div className="text-[11px] text-[var(--forest)]/55 mb-2.5 leading-relaxed">
               Subscribers get every outline template, loaded as a background you draw over.
             </div>
             <button className="auth-submit" onClick={() => setShowPay(true)}>

@@ -1,88 +1,108 @@
 import { motion } from 'framer-motion';
 import { SignIn } from '@clerk/clerk-react';
-import AnimatedShaderBackground from './Animatedshaderbackground';
+import { Hand, Scan, Cloud } from 'lucide-react';
 
 const clerkAppearance = {
   variables: {
-    colorPrimary: '#ff6b4a',
+    colorPrimary: '#246a56',
     colorBackground: 'transparent',
-    colorInputBackground: 'rgba(23,32,70,0.05)',
-    colorInputText: '#1c2440',
-    colorText: '#1c2440',
-    colorTextSecondary: 'rgba(40,52,96,0.55)',
-    colorInputBorder: 'rgba(23,32,70,0.12)',
-    borderRadius: '14px',
-    fontSize: '13.5px',
+    colorInputBackground: 'rgba(255,255,255,0.72)',
+    colorInputText: '#143c35',
+    colorText: '#143c35',
+    colorTextSecondary: 'rgba(20,60,53,0.58)',
+    colorInputBorder: 'rgba(20,60,53,0.14)',
+    colorNeutral: '#143c35',
+    borderRadius: '16px',
+    fontSize: '14px',
   },
   elements: {
-    rootBox: { width: '100%' },
-    card: { background: 'transparent', boxShadow: 'none', width: '100%' },
+    rootBox: { width: '100%', background: 'transparent', boxShadow: 'none' },
+    cardBox: { background: 'transparent', boxShadow: 'none', borderRadius: '0' },
+    card: { background: 'transparent', boxShadow: 'none', width: '100%', padding: '0' },
+    footer: { background: 'transparent' },
+    headerTitle: { fontSize: '1.4rem', fontWeight: '700', letterSpacing: '-0.025em', color: '#143c35' },
+    headerSubtitle: { fontSize: '13px', color: 'rgba(20,60,53,0.58)' },
     formButtonPrimary: {
-      background: '#ff6b4a',
-      fontWeight: 700,
+      background: '#246a56',
+      color: '#f6f4ef',
+      fontWeight: '700',
+      boxShadow: '0 14px 28px -14px rgba(36,106,86,0.65)',
     },
-    socialButtonsBlockButton: { background: '#fff', fontWeight: 700, border: '1px solid rgba(23,32,70,0.1)' },
-    socialButtonsBlockButtonText: { color: '#1c2440' },
-    footerActionLink: { color: '#ff6b4a' },
-    footerActionText: { color: 'rgba(40,52,96,0.55)' },
+    formFieldInput: { borderRadius: '16px', padding: '12px 14px' },
+    formFieldLabel: { fontSize: '12.5px', fontWeight: '600', color: 'rgba(20,60,53,0.72)' },
+    formFieldInputPlaceholder: { color: 'rgba(20,60,53,0.42)' },
+    formFieldErrorText: { color: '#9e4526', fontSize: '12px' },
+    socialButtonsBlockButton: {
+      background: 'rgba(255,255,255,0.72)',
+      fontWeight: '600',
+      border: '1px solid rgba(20,60,53,0.12)',
+      color: '#143c35',
+    },
+    socialButtonsBlockButtonText: { color: '#143c35' },
+    socialButtonsIconButton: { color: '#143c35' },
+    dividerLine: { background: 'rgba(20,60,53,0.12)' },
+    dividerText: { color: 'rgba(20,60,53,0.44)', fontSize: '11.5px' },
+    footerActionLink: { color: '#246a56', fontWeight: '600' },
+    footerActionText: { color: 'rgba(20,60,53,0.58)' },
+    identityBarText: { color: 'rgba(20,60,53,0.5)' },
+    alertBox: { background: 'rgba(158,69,38,0.09)', color: '#8f3f20' },
   },
 };
 
+const FACTS = [
+  { Icon: Scan, text: 'Your webcam feed becomes the canvas.' },
+  { Icon: Hand, text: 'One finger draws. Two fingers move the picture.' },
+  { Icon: Cloud, text: 'Every drawing is already saved to your account.' },
+];
+
 export default function LoginScreen() {
   return (
-    <div className="absolute inset-0 z-[60] overflow-hidden flex items-center justify-center">
-      <AnimatedShaderBackground className="opacity-90" />
-      <div className="pointer-events-none absolute inset-0 bg-black/10" />
+    <div className="auth-shell">
+      <div className="auth-bg" aria-hidden="true" />
 
-      <div className="relative z-10 w-full max-w-4xl px-6 md:px-10 py-8 grid md:grid-cols-[1fr_1fr] gap-10 items-center">
-        <div className="flex flex-col items-center md:items-start text-center md:text-left">
+      <div className="auth-scroll">
+        <div className="auth-grid">
           <motion.div
-            initial={{ opacity: 0, scale: 0.7 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 12 }}
-            className="w-20 h-20 rounded-[22px] flex items-center justify-center text-4xl mb-6"
-            style={{ background: 'var(--kid-blue)', boxShadow: '0 12px 26px -12px rgba(var(--kid-blue-rgb),0.5)' }}
+            className="auth-pitch"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            ✏️
+            <div className="lp-brand">
+              <span className="lp-mark">
+                <Hand size={17} strokeWidth={2.2} />
+              </span>
+              Scribble Air Draw
+            </div>
+
+            <h1 className="auth-title">Your drawings are waiting for you.</h1>
+
+            <p className="lp-lead">
+              Sign in to open the studio. Everything you have drawn is saved to your account, so it
+              is exactly where you left it.
+            </p>
+
+            <div className="auth-facts">
+              {FACTS.map((f) => (
+                <div key={f.text} className="auth-fact">
+                  <span className="auth-fact-icon">
+                    <f.Icon size={15} strokeWidth={2} />
+                  </span>
+                  <span>{f.text}</span>
+                </div>
+              ))}
+            </div>
           </motion.div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15, duration: 0.5 }}
-            className="font-display text-[clamp(2rem,4.6vw,3.2rem)] leading-tight text-[#1c2440]"
-          >
-            Scribble <span style={{ color: 'var(--accent)' }}>Air</span> Draw
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="mt-4 max-w-sm text-[14.5px] leading-relaxed text-[#1c2440]/60"
-          >
-            Wave your hand in the air and watch your drawing come to life. No crayons needed.
-          </motion.p>
-
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-            className="mt-6 flex flex-col gap-2 text-[12.5px] text-[#1c2440]/55 font-medium"
+            className="auth-card"
+            initial={{ opacity: 0, y: 20, scale: 0.99 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 0.12, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            <span>👉 Point your finger to draw</span>
-            <span>✌️ Show a peace sign to move around</span>
+            <SignIn routing="virtual" appearance={clerkAppearance} />
           </motion.div>
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="auth-card w-full"
-        >
-          <SignIn routing="virtual" appearance={clerkAppearance} />
-        </motion.div>
       </div>
     </div>
   );

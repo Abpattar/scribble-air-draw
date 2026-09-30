@@ -113,7 +113,7 @@ export default function GroupsModal({ onClose, onChallenge }: Props) {
             <input className="field-input" placeholder="Group name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />
             <div className="flex gap-1 flex-wrap my-2">
               {AVATARS.map((a) => (
-                <div key={a} className="gmini" style={{ fontSize: 15, opacity: emoji === a ? 1 : 0.45, background: emoji === a ? 'rgba(22,196,127,0.2)' : undefined }} onClick={() => setEmoji(a)}>
+                <div key={a} className="gmini" style={{ fontSize: 15, opacity: emoji === a ? 1 : 0.45, background: emoji === a ? 'rgba(var(--kid-green-rgb),0.2)' : undefined }} onClick={() => setEmoji(a)}>
                   {a}
                 </div>
               ))}

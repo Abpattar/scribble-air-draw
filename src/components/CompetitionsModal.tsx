@@ -57,13 +57,13 @@ const SYNC_EVERY_MS = 5000;
 const FLUSH_LEAD_MS = 400;
 
 const PHASE_META: Record<BattlePhase, { label: string; color: string; bg: string }> = {
-  inviting: { label: 'Inviting', color: 'var(--kid-blue)', bg: 'rgba(47,155,255,0.12)' },
-  ready: { label: 'Get ready', color: 'var(--kid-yellow)', bg: 'rgba(255,197,61,0.18)' },
-  countdown: { label: 'Starting…', color: 'var(--accent2)', bg: 'rgba(124,92,246,0.15)' },
-  drawing: { label: 'Drawing', color: 'var(--accent)', bg: 'rgba(47,155,255,0.12)' },
-  voting: { label: 'Voting', color: 'var(--accent2)', bg: 'rgba(255,159,67,0.15)' },
-  closed: { label: 'Finished', color: 'var(--text-dim)', bg: 'rgba(23,32,70,0.08)' },
-  cancelled: { label: 'Cancelled', color: 'var(--kid-pink)', bg: 'rgba(235,87,138,0.12)' },
+  inviting: { label: 'Inviting', color: 'var(--kid-blue)', bg: 'rgba(var(--kid-blue-rgb),0.12)' },
+  ready: { label: 'Get ready', color: 'var(--kid-yellow)', bg: 'rgba(var(--kid-yellow-rgb),0.18)' },
+  countdown: { label: 'Starting…', color: 'var(--accent2)', bg: 'rgba(var(--accent2-rgb),0.15)' },
+  drawing: { label: 'Drawing', color: 'var(--accent)', bg: 'rgba(var(--kid-blue-rgb),0.12)' },
+  voting: { label: 'Voting', color: 'var(--accent2)', bg: 'rgba(var(--kid-yellow-rgb),0.15)' },
+  closed: { label: 'Finished', color: 'var(--text-dim)', bg: 'rgba(var(--forest-rgb),0.08)' },
+  cancelled: { label: 'Cancelled', color: 'var(--kid-pink)', bg: 'rgba(var(--kid-pink-rgb),0.12)' },
 };
 
 function fmtLeft(ms: number) {
@@ -107,7 +107,7 @@ function StatusPill({ status }: { status: BattlePhase }) {
 type BattleTab = 'live' | 'create' | 'results';
 function SegTabs({ tabs, active, onSelect }: { tabs: { key: BattleTab; label: string; badge?: number }[]; active: BattleTab; onSelect: (k: BattleTab) => void }) {
   return (
-    <div style={{ display: 'flex', background: 'rgba(23,32,70,0.06)', borderRadius: 12, padding: 3, gap: 2, marginBottom: 12 }}>
+    <div style={{ display: 'flex', background: 'rgba(var(--forest-rgb),0.06)', borderRadius: 12, padding: 3, gap: 2, marginBottom: 12 }}>
       {tabs.map((t) => (
         <button
           key={t.key}
@@ -122,7 +122,7 @@ function SegTabs({ tabs, active, onSelect }: { tabs: { key: BattleTab; label: st
             cursor: 'pointer',
             background: active === t.key ? '#fff' : 'transparent',
             color: active === t.key ? 'var(--text)' : 'var(--text-dim)',
-            boxShadow: active === t.key ? '0 1px 4px rgba(23,32,70,0.12)' : 'none',
+            boxShadow: active === t.key ? '0 1px 4px rgba(var(--forest-rgb),0.12)' : 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -131,7 +131,7 @@ function SegTabs({ tabs, active, onSelect }: { tabs: { key: BattleTab; label: st
         >
           <span>{t.label}</span>
           {typeof t.badge === 'number' && t.badge > 0 && (
-            <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--accent)', background: 'rgba(47,155,255,0.14)', borderRadius: 999, padding: '1px 6px' }}>
+            <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--accent)', background: 'rgba(var(--kid-blue-rgb),0.14)', borderRadius: 999, padding: '1px 6px' }}>
               {t.badge}
             </span>
           )}
@@ -149,7 +149,7 @@ function TimeBar({ end, windowMs, color, now }: { end: number; windowMs: number;
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '4px 0 4px' }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)' }}><Timer size={12} style={{ verticalAlign: -1 }} /> {fmtLeft(left)} left</span>
       </div>
-      <div style={{ height: 5, background: 'rgba(23,32,70,0.08)', borderRadius: 99, overflow: 'hidden' }}>
+      <div style={{ height: 5, background: 'rgba(var(--forest-rgb),0.08)', borderRadius: 99, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct * 100}%`, background: color, borderRadius: 99, transition: 'width 1s linear' }} />
       </div>
     </div>
@@ -158,7 +158,7 @@ function TimeBar({ end, windowMs, color, now }: { end: number; windowMs: number;
 
 function InfoTip({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 10.5, color: 'var(--text-dim)', background: 'rgba(47,155,255,0.07)', border: '1px solid rgba(47,155,255,0.2)', borderRadius: 10, padding: '7px 9px', marginTop: 10, lineHeight: 1.5 }}>
+    <div style={{ fontSize: 10.5, color: 'var(--text-dim)', background: 'rgba(var(--kid-blue-rgb),0.07)', border: '1px solid rgba(var(--kid-blue-rgb),0.2)', borderRadius: 10, padding: '7px 9px', marginTop: 10, lineHeight: 1.5 }}>
       {icon && <span style={{ marginRight: 5, verticalAlign: -2 }}>{icon}</span>}
       {children}
     </div>
@@ -167,7 +167,7 @@ function InfoTip({ children, icon }: { children: React.ReactNode; icon?: React.R
 
 function Panel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ border: '1px solid var(--chip-border)', borderRadius: 12, padding: 12, background: '#fff', marginTop: 10 }}>
+    <div style={{ border: '1px solid var(--card-border)', borderRadius: 14, padding: 12, background: 'var(--card-bg)', marginTop: 10 }}>
       {children}
     </div>
   );
@@ -183,7 +183,7 @@ function MiniRoster({ battle, side, now }: { battle: BattleDetail; side: BattleS
   const people = battle.participants.filter((p) => p.side === side);
   const turnName = turn?.userId ? battle.participants.find((p) => p.userId === turn.userId) : null;
   return (
-    <div style={{ border: '1px solid var(--chip-border)', borderRadius: 10, padding: 9, background: '#fff', minWidth: 0, flex: 1 }}>
+    <div style={{ border: '1px solid var(--card-border)', borderRadius: 12, padding: 9, background: 'var(--card-bg)', minWidth: 0, flex: 1 }}>
       <div style={{ fontSize: 11.5, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {info.emoji} {info.name}{battle.mySide === side && <span style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 800 }}> · YOU</span>}
       </div>
@@ -599,7 +599,7 @@ function VotingStage({ battle, entries, now, onVoted }: { battle: BattleDetail; 
         <div style={{ fontSize: 10.5, color: 'var(--text-dim)', marginBottom: 4 }}>
           {entry?.strokeCount || 0} stroke{entry?.strokeCount === 1 ? '' : 's'} · {votes} vote{votes === 1 ? '' : 's'} · {pct}%
         </div>
-        <div style={{ height: 4, background: 'rgba(23,32,70,0.08)', borderRadius: 99, overflow: 'hidden', marginBottom: 8 }}>
+        <div style={{ height: 4, background: 'rgba(var(--forest-rgb),0.08)', borderRadius: 99, overflow: 'hidden', marginBottom: 8 }}>
           <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent2)', borderRadius: 99 }} />
         </div>
         {!battle.hasVoted ? (
@@ -807,7 +807,7 @@ function BattleView({
       <div>
         <div className="gbtn" style={{ width: 'auto', padding: '5px 10px', marginBottom: 8 }} onClick={onBack}>← Back to battles</div>
         {error ? (
-          <div style={{ background: 'rgba(235,87,138,0.08)', border: '1px solid rgba(235,87,138,0.3)', borderRadius: 10, padding: 10, fontSize: 11.5, color: 'var(--kid-pink)', marginTop: 8 }}>
+          <div style={{ background: 'rgba(var(--kid-pink-rgb),0.08)', border: '1px solid rgba(var(--kid-pink-rgb),0.3)', borderRadius: 10, padding: 10, fontSize: 11.5, color: 'var(--kid-pink)', marginTop: 8 }}>
             <AlertCircle size={13} style={{ verticalAlign: -2 }} /> {error}
             <button className="gbtn" style={{ width: '100%', justifyContent: 'center', marginTop: 8 }} onClick={() => void loadMeta()}>Retry</button>
           </div>
@@ -834,7 +834,7 @@ function BattleView({
         )}
       </div>
 
-      <div style={{ border: '1px solid var(--chip-border)', borderRadius: 12, padding: 12, background: '#fff', marginTop: 8 }}>
+      <div style={{ border: '1px solid var(--card-border)', borderRadius: 14, padding: 12, background: 'var(--card-bg)', marginTop: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.35 }}>&ldquo;{battle.prompt}&rdquo;</div>
           <StatusPill status={battle.phase} />
@@ -1002,13 +1002,13 @@ export default function CompetitionsModal({ onClose, sourceGroup, getStrokes, se
   const selectStyle: CSSProperties = { width: '100%' };
   const label = (n: number, t: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9.5, fontWeight: 700, color: 'var(--text-dim)' }}>
-      <span style={{ width: 16, height: 16, borderRadius: 99, background: n === 1 ? 'var(--accent)' : 'rgba(23,32,70,0.08)', color: n === 1 ? '#fff' : 'var(--text-dim)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9 }}>
+      <span style={{ width: 16, height: 16, borderRadius: 99, background: n === 1 ? 'var(--accent)' : 'rgba(var(--forest-rgb),0.08)', color: n === 1 ? '#fff' : 'var(--text-dim)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9 }}>
         {n}
       </span>
       {t}
     </div>
   );
-  const connector = () => <span style={{ width: 10, height: 1, background: 'rgba(23,32,70,0.15)' }} />;
+  const connector = () => <span style={{ width: 10, height: 1, background: 'rgba(var(--forest-rgb),0.15)' }} />;
 
   const summaryCard = (b: BattleSummary) => {
     const deadline = deadlineFor(b);
@@ -1017,7 +1017,7 @@ export default function CompetitionsModal({ onClose, sourceGroup, getStrokes, se
       <div
         key={b.id}
         onClick={() => setOpenId(b.id)}
-        style={{ border: '1px solid var(--chip-border)', borderRadius: 12, padding: 10, marginBottom: 8, background: '#fff', cursor: 'pointer' }}
+        style={{ border: '1px solid var(--card-border)', borderRadius: 14, padding: 12, marginBottom: 8, background: 'var(--card-bg)', cursor: 'pointer' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <div style={{ minWidth: 0 }}>
@@ -1076,7 +1076,7 @@ export default function CompetitionsModal({ onClose, sourceGroup, getStrokes, se
         />
 
         {error && (
-          <div style={{ background: 'rgba(235,87,138,0.08)', border: '1px solid rgba(235,87,138,0.3)', borderRadius: 10, padding: 9, fontSize: 11.5, color: 'var(--kid-pink)', marginBottom: 8 }}>
+          <div style={{ background: 'rgba(var(--kid-pink-rgb),0.08)', border: '1px solid rgba(var(--kid-pink-rgb),0.3)', borderRadius: 10, padding: 9, fontSize: 11.5, color: 'var(--kid-pink)', marginBottom: 8 }}>
             <AlertCircle size={13} style={{ verticalAlign: -2 }} /> {error}
             <button className="gbtn" style={{ width: '100%', justifyContent: 'center', marginTop: 7 }} onClick={() => { setLoaded(false); void load(); }}>Retry</button>
           </div>
@@ -1217,7 +1217,7 @@ export default function CompetitionsModal({ onClose, sourceGroup, getStrokes, se
         {tab === 'results' && (
           <div style={{ maxHeight: 300, overflowY: 'auto' }}>
             {recent.map((b) => (
-              <div key={b.id} onClick={() => setOpenId(b.id)} style={{ border: '1px solid var(--chip-border)', borderRadius: 12, padding: 10, marginBottom: 8, background: '#fff', cursor: 'pointer' }}>
+              <div key={b.id} onClick={() => setOpenId(b.id)} style={{ border: '1px solid var(--card-border)', borderRadius: 14, padding: 12, marginBottom: 8, background: 'var(--card-bg)', cursor: 'pointer' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

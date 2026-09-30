@@ -4,12 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Space Grotesk"', 'sans-serif'],
-      },
-      colors: {
-        cyan: {
-          neon: '#00dcff',
-        },
+        display: ['"Plus Jakarta Sans"', 'sans-serif'],
       },
       keyframes: {
         spin: { to: { transform: 'rotate(360deg)' } },

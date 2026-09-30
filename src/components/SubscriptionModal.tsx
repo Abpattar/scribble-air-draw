@@ -116,7 +116,7 @@ export default function SubscriptionModal({
         description: pl.description,
         prefill: { email, name },
         handler,
-        theme: { color: '#ff6b4a' },
+        theme: { color: 'var(--emerald)' },
         modal: { ondismiss: () => setBusyId(null) },
       });
       r.open();
